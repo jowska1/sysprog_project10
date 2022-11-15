@@ -11,6 +11,55 @@
 #include <sys/shm.h>
 #include "binary_sem.h"
 
+bool rowWin()
+{
+  int i;
+  
+  for(i = 0; i < 3; i++)
+    {
+      // row win found
+      if(board[i][0] != ' ' && board[i][0] == board[i][1] && board[i][1] == board[i][2])
+	{
+	  return true;
+	}
+    }
+  // row win not found
+  return false;
+}
+
+bool columnWin()
+{
+  int i;
+
+  for(i = 0; i < 3; i++)
+    {
+      // column win found
+      if(board[0][i] != ' ' && board[0][i] == board[1][i] && board[1][i] == board[2][i])
+	{
+	  return true;
+	}
+    }
+  // column win not found
+  return false;
+}
+
+bool diagonalWin()
+{
+  // top left to bottom right diagonal win
+  if(board[0][0] != ' ' && board[0][0] == board [1][1] && board[1][1] == board[2][2])
+    {
+      return true;
+    }
+  
+  // bottom left to top right diagonal win
+  if(board[2][0] != ' ' && board[2][0] == board[1][1] && board[1][1] == board[0][2])
+    {
+      return true;
+    }
+  
+  return false;
+}
+
 void printBoard()
 {
     int iteration = 6;
