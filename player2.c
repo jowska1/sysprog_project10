@@ -13,6 +13,39 @@
 
 // function provided by Mr. Knight in guided exercise 11
 // checks if an error occured, if one has prints error message
+
+char Board[3][3];
+const char Player1 = 'X';
+const char Player2 = 'O';
+
+
+void printBoard()
+{
+    int iteration = 6;
+    int a = 0;
+    int b = 0;
+    for(int i = 1; i <= iteration; i++)
+    {
+        
+        if (i % 2 != 0 )
+        {
+            printf("  %c | %c  | %c ", Board[a][0],Board[a][1],Board[a][2]);
+            a++;
+            printf("This is what 'a' is: %d", a);
+            printf("This is what 'b' is: %d", b);
+        }
+        else if (i == 6)
+        {
+            printf("\n");
+        }
+        else
+        {
+            printf("\n---|---|---\n");
+        }
+    }
+}
+
+
 int checkError(int e, const char *str)
 {
   if(e == -1)
