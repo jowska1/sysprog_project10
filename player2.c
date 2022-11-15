@@ -1,4 +1,4 @@
-// Player Two
+// Player Two - plays O
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,14 +10,6 @@
 #include <sys/stat.h>
 #include <sys/shm.h>
 #include "binary_sem.h"
-
-// function provided by Mr. Knight in guided exercise 11
-// checks if an error occured, if one has prints error message
-
-char Board[3][3];
-const char Player1 = 'X';
-const char Player2 = 'O';
-
 
 void printBoard()
 {
@@ -45,7 +37,8 @@ void printBoard()
     }
 }
 
-
+// function provided by Mr. Knight in guided exercise 11
+// checks if an error occured, if one has prints error message
 int checkError(int e, const char *str)
 {
   if(e == -1)
@@ -117,19 +110,27 @@ int main(int argc, char *argv[])
       checkError(reserveSem(semid, 1), "reserveSem");
 
       // 2 - display the state of the game board
-
+      printBoard();
+      
       // 3 - if the turn counter is -1, exit the loop
       if (counter == -1)
 	{
+	  exit(EXIT_SUCCESS);
+	}
 	  
       // 4 - make players 2 move
       // logic goes here
+      
 
       // 5 - display the state of the game board
-
+        assertError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
+	// display board now
+	printBoard();
+      
       // 6 - increment the game turn by 1
-
+      coutner++;
       // 7 - release player 1's semaphore
+      checkError(release(semid, 0), "releaseSem");
     }
   
   // 10 - Open the FIFO xoSync for read
@@ -143,3 +144,4 @@ int main(int argc, char *argv[])
 
   exit(EXIT_SUCCESS);
 }
+
