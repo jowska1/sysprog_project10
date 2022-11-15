@@ -1,5 +1,3 @@
-// Player Two
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -88,15 +86,20 @@ int main(int argc, char *argv[])
       // 3 - if the turn counter is -1, exit the loop
       if (counter == -1)
 	{
+	  exit(EXIT_SUCCESS);
+	}
 	  
       // 4 - make players 2 move
       // logic goes here
+      
 
       // 5 - display the state of the game board
 
+      
       // 6 - increment the game turn by 1
-
+      coutner++;
       // 7 - release player 1's semaphore
+      checkError(release(semid, 0), "releaseSem");
     }
   
   // 10 - Open the FIFO xoSync for read
