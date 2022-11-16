@@ -30,7 +30,7 @@ struct shmseg
 {
   int counter;
   // TODO should this be 2's? because 0-2 is 3?
-  int board[3][3][3];
+  int board[3][3];
 };
 
 int checkError(int e, const char *str)
@@ -120,9 +120,18 @@ int main(int argc, char* argv[])
     // 3. Generate the System V keys with ftok using the random numbers 
     // and the FIFO xoSync.
 
-    // TODO add error checking
     shmK = ftok("xoSync",num1);
+    if (shmK == -1)
+    {
+        perror("ftok1");
+        exit(EXIT_FAILURE);
+    }
     semK = ftok("xoSync",num2);
+    if (semK == -1)
+    {
+        perror("ftok2");
+        exit(EXIT_FAILURE);
+    }
 
     // 4. Create the block of shared memory
     // TODO verify this is right
@@ -130,6 +139,8 @@ int main(int argc, char* argv[])
 
     // 5. Create a semaphore set with a size of 2
     checkError(semid = semget(semK, 2, IPC_CREAT | OBJ_PERMS), "semget");
+
+    // Need to confirm if the semaphore is being properly created
 
     // 6. Initialize the semaphores in the semaphore set.
     // 0 is p1, 1 is p2
