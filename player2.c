@@ -12,64 +12,15 @@
 #include "binary_sem.h"
 #include "semun.h"
 
+#define BUF_SIZE 1024
+#define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+
 // block of shared memory
 struct shmseg
 {
   int counter;
   int board[3][3];
 };
-
-// i think win functions need to be only for player 1
-// return 1 - row win not found
-// return 0 - row win found
-int rowWin(struct shmseg *smap)
-{
-  int i;
-  
-  for(i = 0; i < 3; i++)
-    {
-      // row win found
-      if(smap->board[i][0] == 1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
-	{
-	  return 0;
-	}
-    }
-  // row win not found
-  return 1;
-}
-
-int columnWin(struct shmseg *smap)
-{
-  int i;
-
-  for(i = 0; i < 3; i++)
-    {
-      // column win found
-      if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
-	{
-	  return 0;
-	}
-    }
-  // column win not found
-  return 1;
-}
-
-int diagonalWin(struct shmseg *smap)
-{
-  // top left to bottom right diagonal win
-  if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
-    {
-      return 0;
-    }
-  
-  // bottom left to top right diagonal win
-  if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
-    {
-      return 0;
-    }
-  
-  return 1;
-}
 
 int rowBlock(struct shmseg *smap)
 {
@@ -80,16 +31,22 @@ int rowBlock(struct shmseg *smap)
       if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
 	{
 	  // right block
+	  return 0;
 	}
       if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
 	{
 	  // middle block
+	  return 0;
 	}
       if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
 	{
 	  // left block
+	  return 0;
 	}
     }
+
+  // row block not found
+  return 1;
 }
 
 int columnBlock(struct shmseg *smap)
@@ -101,47 +58,62 @@ int columnBlock(struct shmseg *smap)
       if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
 	{
 	  // bottom block
+	  return 0;
 	}
       if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
 	{
 	  // middle block
+	  return 0;
 	}
       if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
 	{
 	  // top block
+	  return 0;
 	}
     }
+
+  // column block not found
+  return 1;
 }
 
 int diagonalBlock(struct shmseg *smap)
 {
   // top left to bottom right block
-  if(smap->board[0][0] == 'X' && smap->board[1][1] == 'X')
+  if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
     {
       // bottom right block
+      return 0;
     }
-  if(smap->board[0][0] == 'X' && smap->board[2][2] == 'X')
+  if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
     {
       // center block
+      return 0;
     }
-  if(smap->board[1][1] == 'X' && smap->board[2][2] == 'X')
+  if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
     {
       // top left block
+      return 0;
     }
 
   // top right to bottom left block
-  if(smap->board[0][2] == 'X' && smap->board[1][1] == 'X')
+  if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
     {
       // bottom left block
+      return 0;
     }
-  if(smap->board[0][2] == 'X' && smap->board[2][0] == 'X')
+  if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
     {
       // center block
+      return 0;
     }
-  if(smap->board[1][1] == 'X' && smap->board[2][0] == 'X')
+  if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
     {
       // top right block
+      return 0;
     }
+  
+  // diagonal block not found
+  return 1;
 }
 
 void printBoard(struct shmseg *smap)
@@ -189,6 +161,7 @@ int main(int argc, char *argv[])
   int fd;
   int num1, num2;
   int semid, shmid;
+  int rblock, cblock, dblock;
   key_t semK, shmK;
 
   // 1 - checks to see if FIFO exists - if equal to -1 mkfifo has failed
@@ -206,21 +179,21 @@ int main(int argc, char *argv[])
   checkError(fd = open("xoSync", O_RDONLY), "open fifo");
   
   // 3- reading string from the FIFO
-  checkError(read(fd, &num1, sizeof(int)), "read num");
-  checkError(read(fd, &num2, sizeof(int)), "read num");
+  checkError(read(fd, &num1, sizeof(num1)), "read num");
+  checkError(read(fd, &num2, sizeof(num2)), "read num");
 
   // 5 - close FIFO
   close(fd);
 
   // 6 - Generate System V keys with ftok
   // first number uses for shared memory
-  shmK = ftok(".", num1);
+  checkError(shmK = ftok(".", num1), "ftok shm");
   // second number used for semaphores
-  semK = ftok(".", num2);
+  checkError(semK = ftok(".", num2), "ftok sem");
 
   // 7 - retrieve the shared memory and the semaphore set create by player 1
-  checkError(semid = semget(semK, 0, 0), "semget");
   checkError(shmid = shmget(shmK, 0, 0), "shmget");
+  checkError(semid = semget(semK, 0, 0), "semget");
 
   // 8 - Attach the shared memory segment
   smap = shmat(shmid, NULL, 0);
@@ -246,14 +219,36 @@ int main(int argc, char *argv[])
 	  
       // 4 - make players 2 move
       // logic goes here
+      rblock = rowBlock(smap);
+      cblock = columnBlock(smap);
+      dblock = diagonalBlock(smap);
 
-      // first O move - random placement
+      // no blocks found
+      if(rblock == 0 && cblock == 0 && dblock == 0)
+	{
+	  // randomly place O
+	}
 
-      // if all the checking functions return false - randomly place O
-      // if one function returns true - block X
+      // row block found
+      if(rblock)
+	{
+	  
+	}
+
+      // column block found
+      if(cblock)
+	{
+	  
+	}
+
+      // diagonal block found
+      if(dblock)
+	{
+	  
+	}
 
       // 5 - display the state of the game board
-      checkError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
+      // checkError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
       // display board now
       printBoard(smap);
       
