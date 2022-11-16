@@ -1,5 +1,3 @@
-// Player Two - plays O
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -9,58 +7,142 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
 #include "binary_sem.h"
 
-bool rowWin()
+// block of shared memory
+struct shmseg
+{
+  int counter;
+  int board[3][3];
+};
+
+// i think win functions need to be only for player 1
+// return 1 - row win not found
+// return 0 - row win found
+int rowWin(struct shmseg *smap)
 {
   int i;
   
   for(i = 0; i < 3; i++)
     {
       // row win found
-      if(board[i][0] != ' ' && board[i][0] == board[i][1] && board[i][1] == board[i][2])
+      if(smap->board[i][0] == 'X' && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
 	{
-	  return true;
+	  return 0;
 	}
     }
   // row win not found
-  return false;
+  return 1;
 }
 
-bool columnWin()
+int columnWin(struct shmseg *smap)
 {
   int i;
 
   for(i = 0; i < 3; i++)
     {
       // column win found
-      if(board[0][i] != ' ' && board[0][i] == board[1][i] && board[1][i] == board[2][i])
+      if(smap->board[0][i] == 'X' && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
 	{
-	  return true;
+	  return 0;
 	}
     }
   // column win not found
-  return false;
+  return 1;
 }
 
-bool diagonalWin()
+int diagonalWin(struct shmseg *smap)
 {
   // top left to bottom right diagonal win
-  if(board[0][0] != ' ' && board[0][0] == board [1][1] && board[1][1] == board[2][2])
+  if(smap->board[0][0] == 'X' && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
     {
-      return true;
+      return 0;
     }
   
   // bottom left to top right diagonal win
-  if(board[2][0] != ' ' && board[2][0] == board[1][1] && board[1][1] == board[0][2])
+  if(smap->board[2][0] == 'X' && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
     {
-      return true;
+      return 0;
     }
   
-  return false;
+  return 1;
 }
 
-void printBoard()
+int rowBlock(struct shmseg *smap)
+{
+  int i;
+
+  for(i = 0; i < 3; i++)
+    {
+      if(smap->board[i][0] == 'X' && smap->board[i][1] == 'X')
+	{
+	  // right block
+	}
+      if(smap->board[i][0] == 'X' && smap->board[i][2] == 'X')
+	{
+	  // middle block
+	}
+      if (smap->board[i][1] == 'X' && smap->board[i][2])
+	{
+	  // left block
+	}
+    }
+}
+
+int columnBlock(struct shmseg *smap)
+{
+    int i;
+
+  for(i = 0; i < 3; i++)
+    {
+      if(smap->board[0][i] == 'X' && smap->board[1][i] == 'X')
+	{
+	  // bottom block
+	}
+      if(smap->board[0][i] == 'X' && smap->board[2][i] == 'X')
+	{
+	  // middle block
+	}
+      if (smap->board[1][i] == 'X' && smap->board[2][i])
+	{
+	  // top block
+	}
+    }
+}
+
+int diagonalBlock(struct shmseg *smap)
+{
+  // top left to bottom right block
+  if(smap->board[0][0] == 'X' && smap->board[1][1] == 'X')
+    {
+      // bottom right block
+    }
+  if(smap->board[0][0] == 'X' && smap->board[2][2] == 'X')
+    {
+      // center block
+    }
+  if(smap->board[1][1] == 'X' && smap->board[2][2] == 'X')
+    {
+      // top left block
+    }
+
+  // top right to bottom left block
+  if(smap->board[0][2] == 'X' && smap->board[1][1] == 'X')
+    {
+      // bottom left block
+    }
+  if(smap->board[0][2] == 'X' && smap->board[2][0] == 'X')
+    {
+      // center block
+    }
+  if(smap->board[1][1] == 'X' && smap->board[2][0] == 'X')
+    {
+      // top right block
+    }
+}
+
+void printBoard(struct shmseg *smap)
 {
     int iteration = 6;
     int a = 0;
@@ -70,7 +152,7 @@ void printBoard()
         
         if (i % 2 != 0 )
         {
-            printf("  %c | %c  | %c ", Board[a][0],Board[a][1],Board[a][2]);
+            printf("  %c | %c  | %c ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
             a++;
             printf("This is what 'a' is: %d", a);
             printf("This is what 'b' is: %d", b);
@@ -99,13 +181,6 @@ int checkError(int e, const char *str)
   return e;
 }
 
-// block of shared memory
-struct shmseg
-{
-  int counter;
-  int board[3][3][3];
-};
-
 int main(int argc, char *argv[])
 {
   struct shmseg *smap;
@@ -126,7 +201,7 @@ int main(int argc, char *argv[])
     }
 
   // 2 - open FIFO xoSync for read
-  checkError(fd = open("FIFOstring", O_RDONLY), "open consumer");
+  checkError(fd = open("xoSync", O_RDONLY), "open fifo");
   
   // 3- reading string from the FIFO
   checkError(read(fd, &num1, sizeof(int)), "read num");
@@ -153,37 +228,41 @@ int main(int argc, char *argv[])
     }
   
   // 9 - Enter the game play loop
-  while(true)
+  while(1)
     {
       // 1 - reserve player 2's semaphore
       checkError(reserveSem(semid, 1), "reserveSem");
 
       // 2 - display the state of the game board
-      printBoard();
+      printBoard(smap);
       
       // 3 - if the turn counter is -1, exit the loop
-      if (counter == -1)
+      if (smap->counter == -1)
 	{
 	  exit(EXIT_SUCCESS);
 	}
 	  
       // 4 - make players 2 move
       // logic goes here
-      
+
+      // first O move - random placement
+
+      // if all the checking functions return false - randomly place O
+      // if one function returns true - block X
 
       // 5 - display the state of the game board
-        assertError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
-	// display board now
-	printBoard();
+      checkError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
+      // display board now
+      printBoard(smap);
       
       // 6 - increment the game turn by 1
-      coutner++;
+      smap->counter++;
       // 7 - release player 1's semaphore
-      checkError(release(semid, 0), "releaseSem");
+      checkError(releaseSem(semid, 0), "releaseSem");
     }
   
   // 10 - Open the FIFO xoSync for read
-  checkError(fd = open("FIFOstring", O_RDONLY), "open consumer");
+  checkError(fd = open("xoSync", O_RDONLY), "open consumer");
   
   // 11 - Close the FIFO
   close(fd);
@@ -193,4 +272,3 @@ int main(int argc, char *argv[])
 
   exit(EXIT_SUCCESS);
 }
-
