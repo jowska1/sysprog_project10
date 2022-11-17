@@ -22,6 +22,7 @@
     Notes:
     shmget() can obtain the identifier of a previously created
     shared memory segment, or it can create a new set
+
 */
 
 // block of shared memory
@@ -31,57 +32,6 @@ struct shmseg
   // TODO should this be 2's? because 0-2 is 3?
   int board[3][3];
 };
-
-// return 1 - row win not found
-// return 0 - row win found
-int rowWin(struct shmseg *smap)
-{
-  int i;
-  
-  for(i = 0; i < 3; i++)
-    {
-      // row win found
-      if(smap->board[i][0] == 1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
-	{
-	  return 0;
-	}
-    }
-  // row win not found
-  return 1;
-}
-
-int columnWin(struct shmseg *smap)
-{
-  int i;
-
-  for(i = 0; i < 3; i++)
-    {
-      // column win found
-      if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
-	{
-	  return 0;
-	}
-    }
-  // column win not found
-  return 1;
-}
-
-int diagonalWin(struct shmseg *smap)
-{
-  // top left to bottom right diagonal win
-  if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
-    {
-      return 0;
-    }
-  
-  // bottom left to top right diagonal win
-  if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
-    {
-      return 0;
-    }
-  
-  return 1;
-}
 
 int checkError(int e, const char *str)
 {
