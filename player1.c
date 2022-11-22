@@ -22,7 +22,6 @@
     Notes:
     shmget() can obtain the identifier of a previously created
     shared memory segment, or it can create a new set
-
 */
 
 // block of shared memory
@@ -84,6 +83,100 @@ int diagonalWin(struct shmseg *smap)
   return 1;
 }
 
+int rowBlock(struct shmseg *smap)
+{
+    int i;
+
+    for(i = 0; i < 3; i++)
+    {
+        if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
+	    {
+	        // right block
+	        return 0;
+	    }
+        if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
+	    {
+	        // middle block
+	        return 0;
+	    }
+        if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
+	    {
+	        // left block
+	        return 0;
+	    }
+    }
+
+    // row block not found
+    return 1;
+}
+
+int columnBlock(struct shmseg *smap)
+{
+    int i;
+
+    for(i = 0; i < 3; i++)
+    {
+      if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
+	    {
+	        // bottom block
+	        return 0;
+	    }
+      if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
+	    {
+	        // middle block
+	        return 0;
+	    }
+      if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
+	    {
+	        // top block
+	        return 0;
+	    }
+    }
+
+    // column block not found
+    return 1;
+}
+
+int diagonalBlock(struct shmseg *smap)
+{
+    // top left to bottom right block
+    if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
+    {
+        // bottom right block
+        return 0;
+    }
+    if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
+    {
+        // center block
+        return 0;
+    }
+    if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
+    {
+        // top left block
+        return 0;
+    }
+
+    // top right to bottom left block
+    if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
+    {
+        // bottom left block
+        return 0;
+    }
+    if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
+    {
+        // center block
+        return 0;
+    }
+    if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
+    {
+        // top right block
+        return 0;
+    }
+  
+    // diagonal block not found
+    return 1;
+}
+
 int checkError(int e, const char *str)
 {
     if (e == -1)
@@ -134,6 +227,7 @@ int main(int argc, char* argv[])
 {
     // Misc. setup
     int fd;
+    int rblock, cblock, dblock;
 
     // Seed time
     time_t t;
@@ -191,8 +285,6 @@ int main(int argc, char* argv[])
     // 5. Create a semaphore set with a size of 2
     checkError(semid = semget(semK, 2, IPC_CREAT | OBJ_PERMS), "semget");
 
-    // Need to confirm if the semaphore is being properly created
-
     // 6. Initialize the semaphores in the semaphore set.
     // 0 is p1, 1 is p2
     // Set one semaphore to available
@@ -227,17 +319,28 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 3. make player 1's move
+        // logic goes here - dont know if this is how we will do it
+        rblock = rowBlock(smap);
+        cblock = columnBlock(smap);
+        dblock = diagonalBlock(smap);
 
         // 4. display the state of the game board.
         printBoard(smap);
 
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
 
+
         // 6. release player 2's semaphore
         checkError(releaseSem(semid, 0), "releaseSem");
     }
 
-    // Delete semaphores and shared memory before exiting
+    // 12. Open the FIFO xoSYnc for write
+    checkError(fd = open("xoSync", O_WRONLY), "open for write");
+    // 13. Close the FIFO
+    close(fd);
+    // 14. Detach the segment of shared memory
+    checkError(shmdt(smap), "shmdt");
+    // 15. Delete semaphores and shared memory before exiting
     checkError(semctl(semid,0,IPC_RMID),"semctl");
     checkError(shmctl(shmid,0,IPC_RMID),"shmctl");
 
