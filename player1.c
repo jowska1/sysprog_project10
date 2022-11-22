@@ -22,15 +22,54 @@
     Notes:
     shmget() can obtain the identifier of a previously created
     shared memory segment, or it can create a new set
+
+    1 for X, -1 for O
 */
 
 // block of shared memory
 struct shmseg
 {
   int counter;
-  // TODO should this be 2's? because 0-2 is 3?
   int board[3][3];
 };
+
+// check if all 9 spots are filled
+// return 1 if full
+// else, return 0
+// TODO test
+int checkBoardFull(struct shmseg *smap)
+{
+    int i = 0;
+    int j = 0;
+    int spacesFilled = 0;
+
+    for (i = 0; i <= 3; i++)
+    {
+        for (j = 0; j <= 3; j++)
+        {
+            if (smap->board[i][j] != 0)
+            {
+                spacesFilled++;
+            }
+        }
+    }
+    
+    if (spacesFilled == 9)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int xMove(struct shmseg *smap)
+{
+    // first move: choose a random corner to place X
+    // corners: 0,0  0,2  2,0  2,2
+
+}
 
 // return 1 - row win not found
 // return 0 - row win found
@@ -38,16 +77,16 @@ int rowWin(struct shmseg *smap)
 {
   int i;
   
-  for(i = 0; i < 3; i++)
+    for(i = 0; i < 3; i++)
     {
-      // row win found
-      if(smap->board[i][0] + smap->board[i][1] + smap->board[i][2] = 3)
-	{
-	  return 0;
-	}
+        // row win found
+        if(smap->board[i][0] == 1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
+	    {
+	        return 0;
+	    }
     }
-  // row win not found
-  return 1;
+    // row win not found
+    return 1;
 }
 
 int columnWin(struct shmseg *smap)
@@ -57,7 +96,7 @@ int columnWin(struct shmseg *smap)
   for(i = 0; i < 3; i++)
     {
       // column win found
-      if(smap->board[0][i] + smap->board[1][i] + smap->board[2][i] = 3)
+      if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
 	{
 	  return 0;
 	}
@@ -69,18 +108,112 @@ int columnWin(struct shmseg *smap)
 int diagonalWin(struct shmseg *smap)
 {
   // top left to bottom right diagonal win
-  if(smap->board[0][0] + smap->board [1][1] + smap->board[2][2] = 3)
+  if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
     {
       return 0;
     }
   
   // bottom left to top right diagonal win
-  if(smap->board[2][0] + smap->board[1][1] + smap->board[0][2] = 3)
+  if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
     {
       return 0;
     }
   
   return 1;
+}
+
+int rowBlock(struct shmseg *smap)
+{
+    int i;
+
+    for(i = 0; i < 3; i++)
+    {
+        if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
+	    {
+	        // right block
+	        return 0;
+	    }
+        if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
+	    {
+	        // middle block
+	        return 0;
+	    }
+        if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
+	    {
+	        // left block
+	        return 0;
+	    }
+    }
+
+    // row block not found
+    return 1;
+}
+
+int columnBlock(struct shmseg *smap)
+{
+    int i;
+
+    for(i = 0; i < 3; i++)
+    {
+      if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
+	    {
+	        // bottom block
+	        return 0;
+	    }
+      if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
+	    {
+	        // middle block
+	        return 0;
+	    }
+      if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
+	    {
+	        // top block
+	        return 0;
+	    }
+    }
+
+    // column block not found
+    return 1;
+}
+
+int diagonalBlock(struct shmseg *smap)
+{
+    // top left to bottom right block
+    if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
+    {
+        // bottom right block
+        return 0;
+    }
+    if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
+    {
+        // center block
+        return 0;
+    }
+    if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
+    {
+        // top left block
+        return 0;
+    }
+
+    // top right to bottom left block
+    if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
+    {
+        // bottom left block
+        return 0;
+    }
+    if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
+    {
+        // center block
+        return 0;
+    }
+    if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
+    {
+        // top right block
+        return 0;
+    }
+  
+    // diagonal block not found
+    return 1;
 }
 
 int checkError(int e, const char *str)
@@ -226,6 +359,8 @@ int main(int argc, char* argv[])
 
         // 3. make player 1's move
         // logic goes here - dont know if this is how we will do it
+        // first play - a random corner
+        // second play - the opposite corner
         rblock = rowBlock(smap);
         cblock = columnBlock(smap);
         dblock = diagonalBlock(smap);
@@ -234,6 +369,10 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
+        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0)
+        {
+
+        }
 
 
         // 6. release player 2's semaphore
