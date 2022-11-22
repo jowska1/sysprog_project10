@@ -41,7 +41,7 @@ int rowWin(struct shmseg *smap)
   for(i = 0; i < 3; i++)
     {
       // row win found
-      if(smap->board[i][0] == 1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
+      if(smap->board[i][0] + smap->board[i][1] + smap->board[i][2] = 3)
 	{
 	  return 0;
 	}
@@ -57,7 +57,7 @@ int columnWin(struct shmseg *smap)
   for(i = 0; i < 3; i++)
     {
       // column win found
-      if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
+      if(smap->board[0][i] + smap->board[1][i] + smap->board[2][i] = 3)
 	{
 	  return 0;
 	}
@@ -69,112 +69,18 @@ int columnWin(struct shmseg *smap)
 int diagonalWin(struct shmseg *smap)
 {
   // top left to bottom right diagonal win
-  if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
+  if(smap->board[0][0] + smap->board [1][1] + smap->board[2][2] = 3)
     {
       return 0;
     }
   
   // bottom left to top right diagonal win
-  if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
+  if(smap->board[2][0] + smap->board[1][1] + smap->board[0][2] = 3)
     {
       return 0;
     }
   
   return 1;
-}
-
-int rowBlock(struct shmseg *smap)
-{
-    int i;
-
-    for(i = 0; i < 3; i++)
-    {
-        if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
-	    {
-	        // right block
-	        return 0;
-	    }
-        if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
-	    {
-	        // middle block
-	        return 0;
-	    }
-        if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
-	    {
-	        // left block
-	        return 0;
-	    }
-    }
-
-    // row block not found
-    return 1;
-}
-
-int columnBlock(struct shmseg *smap)
-{
-    int i;
-
-    for(i = 0; i < 3; i++)
-    {
-      if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
-	    {
-	        // bottom block
-	        return 0;
-	    }
-      if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
-	    {
-	        // middle block
-	        return 0;
-	    }
-      if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
-	    {
-	        // top block
-	        return 0;
-	    }
-    }
-
-    // column block not found
-    return 1;
-}
-
-int diagonalBlock(struct shmseg *smap)
-{
-    // top left to bottom right block
-    if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
-    {
-        // bottom right block
-        return 0;
-    }
-    if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
-    {
-        // center block
-        return 0;
-    }
-    if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
-    {
-        // top left block
-        return 0;
-    }
-
-    // top right to bottom left block
-    if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
-    {
-        // bottom left block
-        return 0;
-    }
-    if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
-    {
-        // center block
-        return 0;
-    }
-    if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
-    {
-        // top right block
-        return 0;
-    }
-  
-    // diagonal block not found
-    return 1;
 }
 
 int checkError(int e, const char *str)
