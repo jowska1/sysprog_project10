@@ -19,7 +19,7 @@ struct shmseg
   int board[3][3];
 };
 
-
+// function that checks if two X's (1) are found in a row and places an O (-1) to block
 int rowBlock(struct shmseg *smap)
 {
   int i;
@@ -29,16 +29,19 @@ int rowBlock(struct shmseg *smap)
       if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
 	{
 	  // right block
+	  smap->board[i][2] == -1;
 	  return 0;
 	}
       if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
 	{
 	  // middle block
+	  smap->board[i][1] == -1;
 	  return 0;
 	}
       if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
 	{
 	  // left block
+	  smap->board[i][0] == -1;
 	  return 0;
 	}
     }
@@ -47,6 +50,7 @@ int rowBlock(struct shmseg *smap)
   return 1;
 }
 
+// function that checks if two X's (1) are found in a column and places an O (-1) to block
 int columnBlock(struct shmseg *smap)
 {
     int i;
@@ -56,16 +60,19 @@ int columnBlock(struct shmseg *smap)
       if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
 	{
 	  // bottom block
+	  smap->board[2][i] == -1;
 	  return 0;
 	}
       if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
 	{
 	  // middle block
+	  smap->board[1][i] == -1;
 	  return 0;
 	}
       if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
 	{
 	  // top block
+	  smap->board[0][i] == -1;
 	  return 0;
 	}
     }
@@ -74,22 +81,26 @@ int columnBlock(struct shmseg *smap)
   return 1;
 }
 
+// function that checks if two X's (1) are found diagonally and places an O (-1) to block
 int diagonalBlock(struct shmseg *smap)
 {
   // top left to bottom right block
   if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
     {
       // bottom right block
+      smap->board[2][2] == -1;
       return 0;
     }
   if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
     {
       // center block
+      smap->board[1][1] == -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
     {
       // top left block
+      smap->board[0][0] == -1;
       return 0;
     }
 
@@ -97,16 +108,19 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
     {
       // bottom left block
+      smap->board[2][0] == -1;
       return 0;
     }
   if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
     {
       // center block
+      smap->board[1][1] == -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
     {
       // top right block
+      smap->board[2][0] == -1;
       return 0;
     }
   
@@ -114,6 +128,7 @@ int diagonalBlock(struct shmseg *smap)
   return 1;
 }
 
+// function to print the tic-tac-toe board
 void printBoard(struct shmseg *smap)
 {
     int iteration = 6;
@@ -157,10 +172,13 @@ int main(int argc, char *argv[])
 {
   struct shmseg *smap;
   int fd;
-  int num1, num2;
+  int num1, num2, x, y, empty = 1;
   int semid, shmid;
   int rblock, cblock, dblock;
   key_t semK, shmK;
+  time_t t;
+
+  srand((unsigned) time(&t));
 
   // 1 - checks to see if FIFO exists - if equal to -1 mkfifo has failed
   if(mkfifo("xoSync", S_IRWXU) == -1)
@@ -220,33 +238,30 @@ int main(int argc, char *argv[])
 	}
 	  
       // 4 - make players 2 move
-      // logic goes here - dont know if this is how we will do it
+      // checks to see if player two needs to block player one
+      // if block is found O (-1) is placed in the functions
       rblock = rowBlock(smap);
       cblock = columnBlock(smap);
       dblock = diagonalBlock(smap);
 	  
-      // no blocks found
-      if(rblock == 0 && cblock == 0 && dblock == 0)
+      // no blocks found - randomly places O
+      if(rblock == 1 && cblock == 1 && dblock == 1)
 	{
-	  // randomly place O
-	}
+	  // do..while loop that generates two random numbers between 0 and 2
+	  // then checks if that space on the board is empty
+	  // if empty... space stores -1 (for O)
+	  // if not... repeats steps until empty space is found
+	  do {
+	    x = rand() % (2 + 1) + 0;
+	    y = rand() % (2 + 1) + 0;
 
-      // row block found
-      if(rblock)
-	{
-	  
-	}
-
-      // column block found
-      if(cblock)
-	{
-	  
-	}
-
-      // diagonal block found
-      if(dblock)
-	{
-	  
+	    if(smap->board[x][y] == 0)
+	      {
+		smap->board[x][y] == -1;
+		empty = 0;
+	      }
+	    
+	  }while(empty == 1);	    
 	}
 
       // 5 - display the state of the game board
@@ -271,4 +286,3 @@ int main(int argc, char *argv[])
 
   exit(EXIT_SUCCESS);
 }
-
