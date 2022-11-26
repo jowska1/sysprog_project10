@@ -64,18 +64,83 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
-int xMove(struct shmseg *smap)
+// return 0 if move made?
+int p1Move(struct shmseg *smap)
 {
     // first move: choose a random corner to place X
     // corners: 0,0  0,2  2,0  2,2
+    if (smap->counter == 0)
+    {
+        // Seed time
+        time_t t;
+        srand((unsigned) time(&t));
 
+        // Generate random number from 1-4 (TODO verify)
+        int r = rand() % (3 + 1 - 0) + 0;
+        if (r == 1)
+        {
+            smap->board[0][0] = 1;
+            return 0;
+        }
+        else if (r == 2)
+        {
+            smap->board[0][2] = 1;
+            return 0;
+        }
+        else if (r == 3)
+        {
+            smap->board[2][0] = 1;
+            return 0;
+        }
+        else if (r == 4)
+        {
+            smap->board[2][2] = 1;
+            return 0;
+        }
+        else
+        {
+            printf("ERROR: r not a value between 1-4\n");
+            printf("r's value: %s\n", r);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // p1's second play will always be the opposite corner
+    // of p1's first play
+    if (smap->counter == 1)
+    {
+        if (smap->board[0][0] == 1)
+        {
+            // right bottom
+            smap->board[2][2] = 1;
+            return 0;
+        }
+        if (smap->board[0][2] == 1)
+        {
+            // left bottom
+            smap->board[2][0] = 1;
+            return 0;
+        }
+        if (smap->board[2][0] == 1)
+        {
+            // right top
+            smap->board[0][2] == 1;
+            return 0;
+        }
+        if (smap->board[2][2] == 1)
+        {
+            // left top
+            smap->board[0][0] = 1;
+            return 0;
+        }
+    }
 }
 
 // return 1 - row win not found
 // return 0 - row win found
 int rowWin(struct shmseg *smap)
 {
-  int i;
+    int i;
   
     for(i = 0; i < 3; i++)
     {
@@ -244,7 +309,7 @@ void printBoard(struct shmseg *smap)
     for(int i = 1; i <= iteration; i++)
     {
         
-        if (i % 2 != 0 )
+        if (i % 2 != 0)
         {
             printf("  %c | %c  | %c ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
             a++;
@@ -371,7 +436,7 @@ int main(int argc, char* argv[])
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
         if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0)
         {
-
+            smap->counter = -1;
         }
 
 
