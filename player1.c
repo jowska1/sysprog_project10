@@ -24,17 +24,19 @@
     shared memory segment, or it can create a new set
 
     1 for X, -1 for O
+
+    p2 is responsible for iterating counter
 */
 
 // block of shared memory
 struct shmseg
 {
-  int counter;
-  int board[3][3];
+    int counter;
+    int board[3][3];
 };
 
 // check if all 9 spots are filled
-// return 1 if full
+// if full, return 1 
 // else, return 0
 // TODO test
 int checkBoardFull(struct shmseg *smap)
@@ -64,9 +66,10 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
-// return 0 if move made?
+// returns 0 if move successfully made
 int p1Move(struct shmseg *smap)
 {
+
     // first move: choose a random corner to place X
     // corners: 0,0  0,2  2,0  2,2
     if (smap->counter == 0)
@@ -76,7 +79,7 @@ int p1Move(struct shmseg *smap)
         srand((unsigned) time(&t));
 
         // Generate random number from 1-4 (TODO verify)
-        int r = rand() % (3 + 1 - 0) + 0;
+        int r = rand() % (3 + 1 - 0) + 1;
         if (r == 1)
         {
             smap->board[0][0] = 1;
@@ -99,8 +102,9 @@ int p1Move(struct shmseg *smap)
         }
         else
         {
+            // This should never happen
             printf("ERROR: r not a value between 1-4\n");
-            printf("r's value: %s\n", r);
+            printf("r's value: %d\n", r);
             exit(EXIT_FAILURE);
         }
     }
@@ -111,25 +115,25 @@ int p1Move(struct shmseg *smap)
     {
         if (smap->board[0][0] == 1)
         {
-            // right bottom
+            // place right bottom
             smap->board[2][2] = 1;
             return 0;
         }
         if (smap->board[0][2] == 1)
         {
-            // left bottom
+            // place left bottom
             smap->board[2][0] = 1;
             return 0;
         }
         if (smap->board[2][0] == 1)
         {
-            // right top
-            smap->board[0][2] == 1;
+            // place right top
+            smap->board[0][2] = 1;
             return 0;
         }
         if (smap->board[2][2] == 1)
         {
-            // left top
+            // place left top
             smap->board[0][0] = 1;
             return 0;
         }
@@ -156,35 +160,35 @@ int rowWin(struct shmseg *smap)
 
 int columnWin(struct shmseg *smap)
 {
-  int i;
+    int i;
 
-  for(i = 0; i < 3; i++)
+    for(i = 0; i < 3; i++)
     {
-      // column win found
-      if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
-	{
-	  return 0;
-	}
+        // column win found
+        if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
+	    {
+	        return 0;
+	    }
     }
-  // column win not found
-  return 1;
+    // column win not found
+    return 1;
 }
 
 int diagonalWin(struct shmseg *smap)
 {
-  // top left to bottom right diagonal win
-  if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
+    // top left to bottom right diagonal win
+    if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
     {
-      return 0;
+        return 0;
     }
   
-  // bottom left to top right diagonal win
-  if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
+    // bottom left to top right diagonal win
+    if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
     {
-      return 0;
+        return 0;
     }
   
-  return 1;
+    return 1;
 }
 
 int rowBlock(struct shmseg *smap)
@@ -365,9 +369,14 @@ int main(int argc, char* argv[])
     // Generate 2 values between 10-99
     int num1 = rand() % (99 + 1 - 10) + 10;
     int num2 = rand() % (99 + 1 - 10) + 10;
+    
 
     // 3. Generate the System V keys with ftok using the random numbers 
-    // and the FIFO xoSync.
+    // and the FIFO xoSync. Use the first value generated as the projection value
+    // for shared memory and the second value generated 
+    // as the projection value for the semaphores.
+
+    // Are shmK and semK supposed to equal num1 and num2?
 
     shmK = ftok("xoSync",num1);
     if (shmK == -1)
@@ -381,6 +390,8 @@ int main(int argc, char* argv[])
         perror("ftok2");
         exit(EXIT_FAILURE);
     }
+
+    
 
     // 4. Create the block of shared memory
     // TODO verify this is right
@@ -413,6 +424,9 @@ int main(int argc, char* argv[])
     // 10. Close the FIFO
     close(fd);
 
+    // TODO initialize counter to 0 here?
+    smap->counter = 0;
+
     // 11. Enter the gameplay loop.
     while (smap->counter > -1)
     {
@@ -426,9 +440,8 @@ int main(int argc, char* argv[])
         // logic goes here - dont know if this is how we will do it
         // first play - a random corner
         // second play - the opposite corner
-        rblock = rowBlock(smap);
-        cblock = columnBlock(smap);
-        dblock = diagonalBlock(smap);
+        // third play - random?
+        p1Move(smap);
 
         // 4. display the state of the game board.
         printBoard(smap);
@@ -439,12 +452,14 @@ int main(int argc, char* argv[])
             smap->counter = -1;
         }
 
-
         // 6. release player 2's semaphore
         checkError(releaseSem(semid, 0), "releaseSem");
+
+        // DEBUG see counter's value
+        printf("DEBUG: counter = %d\n",smap->counter);
     }
 
-    // 12. Open the FIFO xoSYnc for write
+    // 12. Open the FIFO xoSync for write
     checkError(fd = open("xoSync", O_WRONLY), "open for write");
     // 13. Close the FIFO
     close(fd);
