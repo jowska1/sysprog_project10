@@ -128,6 +128,22 @@ int diagonalBlock(struct shmseg *smap)
   return 1;
 }
 
+char intToChar(struct shmseg *smap, int i, int j)
+{
+    if (smap->board[i][j] == 1)
+    {
+        return 'X';
+    }
+    else if (smap->board[i][j] == -1)
+    {
+        return 'O';
+    }
+    else
+    {
+        return ' ';
+    }
+}
+
 // function to print the tic-tac-toe board
 void printBoard(struct shmseg *smap)
 {
@@ -135,10 +151,9 @@ void printBoard(struct shmseg *smap)
     int a = 0;
     for(int i = 1; i <= iteration; i++)
     {
-        
         if (i % 2 != 0 )
         {
-            printf("  %d | %d | %d ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
+            printf("  %c | %c | %c ",  intToChar(smap,a,0), intToChar(smap,a,1), intToChar(smap,a,2));
             a++;
         }
         else if (i == 6)

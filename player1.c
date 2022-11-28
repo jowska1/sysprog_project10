@@ -66,6 +66,43 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
+// The following functions are helper functions for p1Move
+
+// look for winning row placement and place if so
+// rows: 0,0 and 0,2 - 1,0 and 1,2 - 2,0 and 2,2
+// TODO test
+int tryRow(struct shmseg *smap, int x1, int y1, int x2, int y2)
+{
+    // check x1, y1 for X
+    if (smap->board[x1][y1] != 1)
+    {
+        return 1;
+    }
+    // check x2, y2 for X
+    if (smap->board[x2][y2] != 1)
+    {
+        return 1;
+    }
+
+    // for any of the 3 rows, x1 should equal winX
+    int winX = x1;
+    // and winY will always be 1
+    int winY = 1;
+
+    // if winning place is available
+    if (smap->board[winX][winY] == 0)
+    {
+        // place
+        smap->board[winX][winY] = 1;
+        return 0;
+    }
+
+    // if we can't place
+    return 1;
+}
+
+// **end helper functions**
+
 // first play - a random corner
 // second play - the opposite corner (if available)
 // third play - try the center if O hasn't placed there
@@ -83,7 +120,7 @@ int p1Move(struct shmseg *smap)
         time_t t;
         srand((unsigned) time(&t));
 
-        // Generate random number from 1-4 (TODO verify)
+        // Generate random number from 1-4
         r = rand() % (3 + 1 - 0) + 1;
         if (r == 1)
         {
@@ -197,10 +234,40 @@ int p1Move(struct shmseg *smap)
             smap->board[1][1] = 1;
             return 0;
         }
-        // if we end up here, x has no diagonal play -or- O has the center
-        // first check if X can win in a row or column
-        // if not, take another available corner?
 
+        // if we end up here, x has no diagonal play -or- O has the center
+        // check if X can win in a row or column
+
+        // if X has left top and left bottom, and left middle is available
+        if (smap->board[0][0] == 1 && smap->board[2][0] == 1 && smap->board[1][0] == 0)
+        {
+            // place left middle
+            smap->board[1][0] = 1;
+            return 0;
+        }
+        // if X has right top and right bottom, and right middle is available
+        if (smap->board[0][2] == 1 && smap->board[2][2] == 1 && smap->board[1][2] == 0)
+        {
+            // place right middle
+            smap->board[1][2] = 1;
+            return 0;
+        }
+        // if X has left top and right top, and top middle is available
+        if (smap->board[0][0] == 1 && smap->board[0][2] == 1 && smap->board[0][1] == 0)
+        {
+            // place top middle
+            smap->board[0][1] = 1;
+            return 0;
+        }
+        // if X has left bottom and right bottom, and bottom middle is available
+        if (smap->board[2][0] == 1 && smap->board[2][2] == 1 && smap->board[2][1] == 0)
+        {
+            // place top middle
+            smap->board[2][1] = 1;
+            return 0;
+        }
+
+        // if not, take another available corner?
 
 
     }
@@ -362,26 +429,19 @@ int checkError(int e, const char *str)
     return e;
 }
 
-char intToChar(struct shmseg *smap)
+char intToChar(struct shmseg *smap, int i, int j)
 {
-    for (int i = 0; i < 3; i++)
+    if (smap->board[i][j] == 1)
     {
-        for (int j = 0; j < 3; j++)
-        {
-            if (smap->board[i][j] == 1)
-            {
-                return 'X';
-            }
-            else if (smap->board[i][j] == -1)
-            {
-                return 'O';
-            }
-            else
-            {
-                return ' ';
-            }
-            
-        }
+        return 'X';
+    }
+    else if (smap->board[i][j] == -1)
+    {
+        return 'O';
+    }
+    else
+    {
+        return ' ';
     }
 }
 
@@ -394,7 +454,7 @@ void printBoard(struct shmseg *smap)
     {
         if (i % 2 != 0 )
         {
-            printf("  %c | %c | %c ",  intToChar(smap), intToChar(smap), intToChar(smap));
+            printf("  %c | %c | %c ",  intToChar(smap,a,0), intToChar(smap,a,1), intToChar(smap,a,2));
             a++;
         }
         else if (i == 6)
