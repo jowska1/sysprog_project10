@@ -66,9 +66,14 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
+// first play - a random corner
+// second play - the opposite corner (if available)
+// third play - try the center if O hasn't placed there
 // returns 0 if move successfully made
 int p1Move(struct shmseg *smap)
 {
+    // Stores a randomly generated value
+    int r;
 
     // first move: choose a random corner to place X
     // corners: 0,0  0,2  2,0  2,2
@@ -79,7 +84,7 @@ int p1Move(struct shmseg *smap)
         srand((unsigned) time(&t));
 
         // Generate random number from 1-4 (TODO verify)
-        int r = rand() % (3 + 1 - 0) + 1;
+        r = rand() % (3 + 1 - 0) + 1;
         if (r == 1)
         {
             smap->board[0][0] = 1;
@@ -109,34 +114,95 @@ int p1Move(struct shmseg *smap)
         }
     }
 
-    // p1's second play will always be the opposite corner
-    // of p1's first play
+    // p1's second move will first try to 
+    // place at the opposite corner of p1's first move
     if (smap->counter == 1)
     {
-        if (smap->board[0][0] == 1)
+        // if X is left top (and right bottom is clear)
+        if (smap->board[0][0] == 1 && smap->board[2][2] != -1)
         {
             // place right bottom
             smap->board[2][2] = 1;
             return 0;
         }
-        if (smap->board[0][2] == 1)
+        // if X is right top
+        else if (smap->board[0][2] == 1 && smap->board[2][0] != -1)
         {
             // place left bottom
             smap->board[2][0] = 1;
             return 0;
         }
-        if (smap->board[2][0] == 1)
+        // if X is left bottom
+        else if (smap->board[2][0] == 1 && smap->board[0][2] != -1)
         {
             // place right top
             smap->board[0][2] = 1;
             return 0;
         }
-        if (smap->board[2][2] == 1)
+        // if X is right bottom
+        else if (smap->board[2][2] == 1 && smap->board[0][0] != -1)
         {
             // place left top
             smap->board[0][0] = 1;
             return 0;
         }
+        // if we make it here, O is placed in the opposite corner as X
+        // so X should just place in a random corner(?)
+        // NOTE I haven't seen if this works or not yet
+        else
+        {
+            // try left top
+            if (smap->board[0][0] == 0)
+            {
+                smap->board[0][0] = 1;
+                return 0;
+            }
+            // try right top
+            if (smap->board[0][2] == 0)
+            {
+                smap->board[0][2] = 1;
+                return 0;
+            }
+            // try left bottom
+            if (smap->board[2][0] == 0)
+            {
+                smap->board[2][0] = 1;
+                return 0;
+            }
+            // try right bottom
+            if (smap->board[2][0] == 0)
+            {
+                smap->board[2][0] = 1;
+                return 0;
+            }
+        }
+    }
+
+    // third move:
+    // if X is placed in 2 opposite corners, p1 should try to play center
+    // for a diagonal win
+    if (smap->counter == 2)
+    {
+        // if X has left top and bottom right, and center is available
+        if (smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
+        {
+            // place center
+            smap->board[1][1] = 1;
+            return 0;
+        }
+        // if X has bottom left and top right, and center is available
+        if (smap->board[2][0] == 1 && smap->board[0][2] == 1 && smap->board[1][1] == 0)
+        {
+            // place center
+            smap->board[1][1] = 1;
+            return 0;
+        }
+        // if we end up here, x has no diagonal play -or- O has the center
+        // first check if X can win in a row or column
+        // if not, take another available corner?
+
+
+
     }
 }
 
@@ -296,29 +362,40 @@ int checkError(int e, const char *str)
     return e;
 }
 
-void assertError(int e, const char *str)
+char intToChar(struct shmseg *smap)
 {
-    if (e == -1)
+    for (int i = 0; i < 3; i++)
     {
-        perror(str);
-        exit(EXIT_FAILURE);
+        for (int j = 0; j < 3; j++)
+        {
+            if (smap->board[i][j] == 1)
+            {
+                return 'X';
+            }
+            else if (smap->board[i][j] == -1)
+            {
+                return 'O';
+            }
+            else
+            {
+                return ' ';
+            }
+            
+        }
     }
 }
 
+// function to print the tic-tac-toe board
 void printBoard(struct shmseg *smap)
 {
     int iteration = 6;
     int a = 0;
-    int b = 0;
     for(int i = 1; i <= iteration; i++)
     {
-        
-        if (i % 2 != 0)
+        if (i % 2 != 0 )
         {
-            printf("  %c | %c  | %c ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
+            printf("  %c | %c | %c ",  intToChar(smap), intToChar(smap), intToChar(smap));
             a++;
-            printf("This is what 'a' is: %d", a);
-            printf("This is what 'b' is: %d", b);
         }
         else if (i == 6)
         {
@@ -326,9 +403,11 @@ void printBoard(struct shmseg *smap)
         }
         else
         {
-            printf("\n---|---|---\n");
+            printf("\n ---|---|---\n");
         }
     }
+
+    printf("\n");
 }
 
 int main(int argc, char* argv[])
@@ -369,14 +448,11 @@ int main(int argc, char* argv[])
     // Generate 2 values between 10-99
     int num1 = rand() % (99 + 1 - 10) + 10;
     int num2 = rand() % (99 + 1 - 10) + 10;
-    
 
     // 3. Generate the System V keys with ftok using the random numbers 
     // and the FIFO xoSync. Use the first value generated as the projection value
     // for shared memory and the second value generated 
     // as the projection value for the semaphores.
-
-    // Are shmK and semK supposed to equal num1 and num2?
 
     shmK = ftok("xoSync",num1);
     if (shmK == -1)
@@ -390,8 +466,6 @@ int main(int argc, char* argv[])
         perror("ftok2");
         exit(EXIT_FAILURE);
     }
-
-    
 
     // 4. Create the block of shared memory
     // TODO verify this is right
@@ -439,8 +513,8 @@ int main(int argc, char* argv[])
         // 3. make player 1's move
         // logic goes here - dont know if this is how we will do it
         // first play - a random corner
-        // second play - the opposite corner
-        // third play - random?
+        // second play - the opposite corner (if available)
+        // third play - try the center if O hasn't placed there
         p1Move(smap);
 
         // 4. display the state of the game board.
@@ -453,14 +527,14 @@ int main(int argc, char* argv[])
         }
 
         // 6. release player 2's semaphore
-        checkError(releaseSem(semid, 0), "releaseSem");
+        checkError(releaseSem(semid, 1), "releaseSem");
 
         // DEBUG see counter's value
         printf("DEBUG: counter = %d\n",smap->counter);
     }
 
     // 12. Open the FIFO xoSync for write
-    checkError(fd = open("xoSync", O_WRONLY), "open for write");
+    checkError(fd = open("xoSync", O_WRONLY), "open producer");
     // 13. Close the FIFO
     close(fd);
     // 14. Detach the segment of shared memory
