@@ -66,11 +66,24 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
-// The following functions are helper functions for p1Move
+// simply try placing in a spot
+int tryPlace(struct shmseg *smap, int x, int y)
+{
+    if (smap->board[x][y] == 0)
+    {
+        smap->board[x][y] = 1;
+        return 0;
+    }
+    else {return 1;}
+}
+
+// tryRow, tryColumn, and tryDiagonal are helper functions for p1Move
+// that try to complete a row/column/diagonal for a win
+// Each function recieves coordinates for 2 spaces, checks if X is placed in them,
+// then tries to place in the winning position between the 2 spaces
 
 // look for winning row placement and place if so
-// rows: 0,0 and 0,2 - 1,0 and 1,2 - 2,0 and 2,2
-// TODO test
+// 3 rows: 0,0 and 0,2 - 1,0 and 1,2 - 2,0 and 2,0 - 2,2
 int tryRow(struct shmseg *smap, int x1, int y1, int x2, int y2)
 {
     // check x1, y1 for X
@@ -84,7 +97,7 @@ int tryRow(struct shmseg *smap, int x1, int y1, int x2, int y2)
         return 1;
     }
 
-    // for any of the 3 rows, x1 should equal winX
+    // for any row, x1 should equal winX
     int winX = x1;
     // and winY will always be 1
     int winY = 1;
@@ -94,6 +107,67 @@ int tryRow(struct shmseg *smap, int x1, int y1, int x2, int y2)
     {
         // place
         smap->board[winX][winY] = 1;
+        return 0;
+    }
+
+    // if we can't place
+    return 1;
+}
+
+// look for winning column placement and place if so
+// 3 columns: 0,0 and 2,0 - 0,1 and 2,1 - 0,2 and 2,2
+int tryColumn(struct shmseg *smap, int x1, int y1, int x2, int y2)
+{
+    // check x1, y1 for X
+    if (smap->board[x1][y1] != 1)
+    {
+        return 1;
+    }
+    // check x2, y2 for X
+    if (smap->board[x2][y2] != 1)
+    {
+        return 1;
+    }
+
+    // for any column, winX will always be 1
+    int winX = 1;
+    // and winY should equal y1
+    int winY = y1;
+
+    // if winning place is available
+    if (smap->board[winX][winY] == 0)
+    {
+        // place
+        smap->board[winX][winY] = 1;
+        return 0;
+    }
+
+    // if we can't place
+    return 1;
+}
+
+// look for winning diagonal placement and place if so
+// 2 diagonal: 0,0 and 2,2 - 2,0 and 0,2
+int tryDiagonal(struct shmseg *smap, int x1, int y1, int x2, int y2)
+{
+    // check x1, y1 for X
+    if (smap->board[x1][y1] != 1)
+    {
+        return 1;
+    }
+    // check x2, y2 for X
+    if (smap->board[x2][y2] != 1)
+    {
+        return 1;
+    }
+
+    // the winning place will always be 1,1
+
+    // if winning place is available
+    if (smap->board[1][1] == 0)
+    {
+        // place
+        smap->board[1][1] = 1;
         return 0;
     }
 
@@ -142,9 +216,9 @@ int p1Move(struct shmseg *smap)
             smap->board[2][2] = 1;
             return 0;
         }
+        // This should never happen
         else
         {
-            // This should never happen
             printf("ERROR: r not a value between 1-4\n");
             printf("r's value: %d\n", r);
             exit(EXIT_FAILURE);
@@ -156,28 +230,28 @@ int p1Move(struct shmseg *smap)
     if (smap->counter == 1)
     {
         // if X is left top (and right bottom is clear)
-        if (smap->board[0][0] == 1 && smap->board[2][2] != -1)
+        if (smap->board[0][0] == 1 && smap->board[2][2] == 0)
         {
             // place right bottom
             smap->board[2][2] = 1;
             return 0;
         }
         // if X is right top
-        else if (smap->board[0][2] == 1 && smap->board[2][0] != -1)
+        else if (smap->board[0][2] == 1 && smap->board[2][0] == 0)
         {
             // place left bottom
             smap->board[2][0] = 1;
             return 0;
         }
         // if X is left bottom
-        else if (smap->board[2][0] == 1 && smap->board[0][2] != -1)
+        else if (smap->board[2][0] == 1 && smap->board[0][2] == 0)
         {
             // place right top
             smap->board[0][2] = 1;
             return 0;
         }
         // if X is right bottom
-        else if (smap->board[2][2] == 1 && smap->board[0][0] != -1)
+        else if (smap->board[2][2] == 1 && smap->board[0][0] == 0)
         {
             // place left top
             smap->board[0][0] = 1;
@@ -189,29 +263,13 @@ int p1Move(struct shmseg *smap)
         else
         {
             // try left top
-            if (smap->board[0][0] == 0)
-            {
-                smap->board[0][0] = 1;
-                return 0;
-            }
+            if (tryPlace(smap,0,0) == 0){return 0;}
             // try right top
-            if (smap->board[0][2] == 0)
-            {
-                smap->board[0][2] = 1;
-                return 0;
-            }
+            if (tryPlace(smap,0,2) == 0){return 0;}
             // try left bottom
-            if (smap->board[2][0] == 0)
-            {
-                smap->board[2][0] = 1;
-                return 0;
-            }
+            if (tryPlace(smap,2,0) == 0){return 0;}
             // try right bottom
-            if (smap->board[2][0] == 0)
-            {
-                smap->board[2][0] = 1;
-                return 0;
-            }
+            if (tryPlace(smap,2,2) == 0){return 0;}
         }
     }
 
@@ -220,57 +278,36 @@ int p1Move(struct shmseg *smap)
     // for a diagonal win
     if (smap->counter == 2)
     {
-        // if X has left top and bottom right, and center is available
-        if (smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
-        {
-            // place center
-            smap->board[1][1] = 1;
-            return 0;
-        }
-        // if X has bottom left and top right, and center is available
-        if (smap->board[2][0] == 1 && smap->board[0][2] == 1 && smap->board[1][1] == 0)
-        {
-            // place center
-            smap->board[1][1] = 1;
-            return 0;
-        }
+        // if X has left top and bottom right
+        if (tryDiagonal(smap,0,0,2,2) == 0){return 0;}
+        // if X has bottom left and top right
+        if (tryDiagonal(smap,2,0,0,2) == 0){return 0;}
 
         // if we end up here, x has no diagonal play -or- O has the center
         // check if X can win in a row or column
 
-        // if X has left top and left bottom, and left middle is available
-        if (smap->board[0][0] == 1 && smap->board[2][0] == 1 && smap->board[1][0] == 0)
-        {
-            // place left middle
-            smap->board[1][0] = 1;
-            return 0;
-        }
-        // if X has right top and right bottom, and right middle is available
-        if (smap->board[0][2] == 1 && smap->board[2][2] == 1 && smap->board[1][2] == 0)
-        {
-            // place right middle
-            smap->board[1][2] = 1;
-            return 0;
-        }
-        // if X has left top and right top, and top middle is available
-        if (smap->board[0][0] == 1 && smap->board[0][2] == 1 && smap->board[0][1] == 0)
-        {
-            // place top middle
-            smap->board[0][1] = 1;
-            return 0;
-        }
-        // if X has left bottom and right bottom, and bottom middle is available
-        if (smap->board[2][0] == 1 && smap->board[2][2] == 1 && smap->board[2][1] == 0)
-        {
-            // place top middle
-            smap->board[2][1] = 1;
-            return 0;
-        }
+        // if X has left top and left bottom
+        if (tryColumn(smap,0,0,2,0) == 0){return 0;}
+        // if X has right top and right bottom
+        if (tryColumn(smap,0,2,2,2) == 0){return 0;}
+        // if X has left top and right top
+        if (tryRow(smap,0,0,0,2) == 0){return 0;}
+        // if X has left bottom and right bottom
+        if (tryRow(smap,2,0,2,2) == 0){return 0;}
 
-        // if not, take another available corner?
+        // if not, take another available corner(?)
 
-
+        // try left top
+        if (tryPlace(smap,0,0) == 0){return 0;}
+        // try right top
+        if (tryPlace(smap,0,2) == 0){return 0;}
+        // try left bottom
+        if (tryPlace(smap,2,0) == 0){return 0;}
+        // try right bottom
+        if (tryPlace(smap,2,2) == 0){return 0;}
     }
+
+    // fourth move?
 }
 
 // return 1 - row win not found
@@ -321,100 +358,6 @@ int diagonalWin(struct shmseg *smap)
         return 0;
     }
   
-    return 1;
-}
-
-int rowBlock(struct shmseg *smap)
-{
-    int i;
-
-    for(i = 0; i < 3; i++)
-    {
-        if(smap->board[i][0] == 1 && smap->board[i][1] == 1)
-	    {
-	        // right block
-	        return 0;
-	    }
-        if(smap->board[i][0] == 1 && smap->board[i][2] == 1)
-	    {
-	        // middle block
-	        return 0;
-	    }
-        if (smap->board[i][1] == 1 && smap->board[i][2] == 1)
-	    {
-	        // left block
-	        return 0;
-	    }
-    }
-
-    // row block not found
-    return 1;
-}
-
-int columnBlock(struct shmseg *smap)
-{
-    int i;
-
-    for(i = 0; i < 3; i++)
-    {
-      if(smap->board[0][i] == 1 && smap->board[1][i] == 1)
-	    {
-	        // bottom block
-	        return 0;
-	    }
-      if(smap->board[0][i] == 1 && smap->board[2][i] == 1)
-	    {
-	        // middle block
-	        return 0;
-	    }
-      if (smap->board[1][i] == 1 && smap->board[2][i] == 1)
-	    {
-	        // top block
-	        return 0;
-	    }
-    }
-
-    // column block not found
-    return 1;
-}
-
-int diagonalBlock(struct shmseg *smap)
-{
-    // top left to bottom right block
-    if(smap->board[0][0] == 1 && smap->board[1][1] == 1)
-    {
-        // bottom right block
-        return 0;
-    }
-    if(smap->board[0][0] == 1 && smap->board[2][2] == 1)
-    {
-        // center block
-        return 0;
-    }
-    if(smap->board[1][1] == 1 && smap->board[2][2] == 1)
-    {
-        // top left block
-        return 0;
-    }
-
-    // top right to bottom left block
-    if(smap->board[0][2] == 1 && smap->board[1][1] == 1)
-    {
-        // bottom left block
-        return 0;
-    }
-    if(smap->board[0][2] == 1 && smap->board[2][0] == 1)
-    {
-        // center block
-        return 0;
-    }
-    if(smap->board[1][1] == 1 && smap->board[2][0] == 1)
-    {
-        // top right block
-        return 0;
-    }
-  
-    // diagonal block not found
     return 1;
 }
 
@@ -571,10 +514,6 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 3. make player 1's move
-        // logic goes here - dont know if this is how we will do it
-        // first play - a random corner
-        // second play - the opposite corner (if available)
-        // third play - try the center if O hasn't placed there
         p1Move(smap);
 
         // 4. display the state of the game board.
