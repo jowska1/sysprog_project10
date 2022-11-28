@@ -133,16 +133,13 @@ void printBoard(struct shmseg *smap)
 {
     int iteration = 6;
     int a = 0;
-    int b = 0;
     for(int i = 1; i <= iteration; i++)
     {
         
         if (i % 2 != 0 )
         {
-            printf("  %c | %c  | %c ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
+            printf("  %d | %d | %d ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
             a++;
-            printf("This is what 'a' is: %d", a);
-            printf("This is what 'b' is: %d", b);
         }
         else if (i == 6)
         {
@@ -150,9 +147,11 @@ void printBoard(struct shmseg *smap)
         }
         else
         {
-            printf("\n---|---|---\n");
+            printf("\n ---|---|---\n");
         }
     }
+
+    printf("\n");
 }
 
 // function provided by Mr. Knight in guided exercise 11
@@ -204,8 +203,18 @@ int main(int argc, char *argv[])
   // 6 - Generate System V keys with ftok
   // first number uses for shared memory
   shmK = ftok("xoSync", num1);
+  if (shmK == -1)
+    {
+        perror("ftok1");
+        exit(EXIT_FAILURE);
+    }
   // second number used for semaphores
   semK = ftok("xoSync", num2);
+  if (semK == -1)
+    {
+        perror("ftok1");
+        exit(EXIT_FAILURE);
+    }
 
   // 7 - retrieve the shared memory and the semaphore set create by player 1
   checkError(semid = semget(semK, 0, 0), "semget");
@@ -227,7 +236,7 @@ int main(int argc, char *argv[])
 
       // 1 - reserve player 2's semaphore
       checkError(reserveSem(semid, 1), "reserveSem");
-
+      
       // 2 - display the state of the game board
       printBoard(smap);
       
@@ -257,7 +266,7 @@ int main(int argc, char *argv[])
 
 	    if(smap->board[x][y] == 0)
 	      {
-		smap->board[x][y] == -1;
+		smap->board[x][y] = -1;
 		empty = 0;
 	      }
 	    
@@ -265,8 +274,6 @@ int main(int argc, char *argv[])
 	}
 
       // 5 - display the state of the game board
-      checkError(write(STDOUT_FILENO, "Player 2 (O) \n", 14), "write");
-      // display board now
       printBoard(smap);
       
       // 6 - increment the game turn by 1
