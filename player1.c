@@ -581,7 +581,7 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
-        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0)
+        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 || checkBoardFull(smap) == 1)
         {
             smap->counter = -1;
         }
