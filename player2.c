@@ -238,6 +238,7 @@ int main(int argc, char *argv[])
       checkError(reserveSem(semid, 1), "reserveSem");
       
       // 2 - display the state of the game board
+      printf("Player 1 Move\n");
       printBoard(smap);
       
       // 3 - if the turn counter is -1, exit the loop
@@ -252,9 +253,9 @@ int main(int argc, char *argv[])
       rblock = rowBlock(smap);
       cblock = columnBlock(smap);
       dblock = diagonalBlock(smap);
-	  
+
       // no blocks found - randomly places O
-      if(rblock == 1 && cblock == 1 && dblock == 1)
+      if(rblock == 1 || cblock == 1 || dblock == 1)
 	{
 	  // do..while loop that generates two random numbers between 0 and 2
 	  // then checks if that space on the board is empty
@@ -274,6 +275,7 @@ int main(int argc, char *argv[])
 	}
 
       // 5 - display the state of the game board
+      printf("Player 2 Move\n");
       printBoard(smap);
       
       // 6 - increment the game turn by 1
