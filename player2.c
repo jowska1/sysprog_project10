@@ -19,6 +19,37 @@ struct shmseg
   int board[3][3];
 };
 
+// check if all 9 spots are filled
+// if full, return 1 
+// else, return 0
+// TODO test
+int checkBoardFull(struct shmseg *smap)
+{
+    int i = 0;
+    int j = 0;
+    int spacesFilled = 0;
+
+    for (i = 0; i <= 3; i++)
+    {
+        for (j = 0; j <= 3; j++)
+        {
+            if (smap->board[i][j] == 1 || smap->board[i][j] == -1)
+            {
+                spacesFilled++;
+            }
+        }
+    }
+    
+    if (spacesFilled == 9)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 int tryRowBlock(struct shmseg *smap)
 {
   int i;
@@ -263,6 +294,57 @@ void printBoard(struct shmseg *smap)
     printf("\n");
 }
 
+// return 1 - row win not found
+// return 0 - row win found
+int rowWin(struct shmseg *smap)
+{
+    int i;
+  
+    for(i = 0; i < 3; i++)
+    {
+        // row win found
+        if(smap->board[i][0] == -1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
+	    {
+	        return 0;
+	    }
+    }
+    // row win not found
+    return 1;
+}
+
+int columnWin(struct shmseg *smap)
+{
+    int i;
+
+    for(i = 0; i < 3; i++)
+    {
+        // column win found
+        if(smap->board[0][i] == -1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
+	    {
+	        return 0;
+	    }
+    }
+    // column win not found
+    return 1;
+}
+
+int diagonalWin(struct shmseg *smap)
+{
+    // top left to bottom right diagonal win
+    if(smap->board[0][0] == -1 && smap->board[0][0] == smap->board[1][1] && smap->board[1][1] == smap->board[2][2])
+    {
+        return 0;
+    }
+  
+    // bottom left to top right diagonal win
+    if(smap->board[2][0] == -1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
+    {
+        return 0;
+    }
+  
+    return 1;
+}
+
 // function provided by Mr. Knight in guided exercise 11
 // checks if an error occured, if one has prints error message
 int checkError(int e, const char *str)
@@ -337,7 +419,7 @@ int main(int argc, char *argv[])
     }
   
   // 9 - Enter the game play loop
-  while(1)
+  while(smap->counter != -1)
     {
 
       // 1 - reserve player 2's semaphore
@@ -374,7 +456,7 @@ int main(int argc, char *argv[])
 	}
 
       // no blocks found - randomly places O
-      if(rblockFound == 1 || cblockFound == 1 || dblockFound == 1)
+      if(rblockFound == 1 && cblockFound == 1 && dblockFound == 1)
 	{
 	  // do..while loop that generates two random numbers between 0 and 2
 	  // then checks if that space on the board is empty
@@ -396,6 +478,18 @@ int main(int argc, char *argv[])
       // 5 - display the state of the game board
       printf("Player 2 Move\n");
       printBoard(smap);
+
+      // 5 1/2 - if player 2 has somehow won, or no more plays exist set the turn counter to -1
+      if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 )
+	    {
+	        printf("Player 2 Won!!\n");
+	        smap->counter = -1;
+	    }
+        else if(checkBoardFull(smap) == 0)
+	    {
+	        printf("Tie!!\n");
+	        smap->counter = -1;
+	    }
       
       // 6 - increment the game turn by 1
       smap->counter++;

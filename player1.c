@@ -50,8 +50,8 @@ void resetBoard(struct shmseg *smap)
 }
 
 // check if all 9 spots are filled
-// if full, return 1 
-// else, return 0
+// if full, return 0
+// else, return 1
 // TODO test
 int checkBoardFull(struct shmseg *smap)
 {
@@ -63,7 +63,7 @@ int checkBoardFull(struct shmseg *smap)
     {
         for (j = 0; j <= 3; j++)
         {
-            if (smap->board[i][j] != 0)
+            if (smap->board[i][j] == 1 || smap->board[i][j] == -1)
             {
                 spacesFilled++;
             }
@@ -72,11 +72,11 @@ int checkBoardFull(struct shmseg *smap)
     
     if (spacesFilled == 9)
     {
-        return 1;
+        return 0;
     }
     else
     {
-        return 0;
+        return 1;
     }
 }
 
@@ -532,17 +532,16 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
-        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 )
-	  {
-	    printf("Player 1 Won!!\n");
-	    smap->counter = -1;
-	  }
-
-	if(checkBoardFull(smap) == 1)
-	  {
-	    printf("Tie!!\n");
-	    smap->counter = -1;
-	  }
+        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0)
+	    {
+	        printf("Player 1 Won!!\n");
+	        smap->counter = -1;
+	    }
+        else if(checkBoardFull(smap) == 0)
+	    {
+	        printf("Tie!!\n");
+	        smap->counter = -1;
+	    }
 
         // 6. release player 2's semaphore
         checkError(releaseSem(semid, 1), "releaseSem");
