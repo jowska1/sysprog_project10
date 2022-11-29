@@ -273,10 +273,10 @@ int p1Move(struct shmseg *smap)
         }
     }
 
-    // third move:
+    // third (or more) move:
     // if X is placed in 2 opposite corners, p1 should try to play center
     // for a diagonal win
-    if (smap->counter == 2)
+    if (smap->counter >= 2)
     {
         // if X has left top and bottom right
         if (tryDiagonal(smap,0,0,2,2) == 0){return 0;}
@@ -295,7 +295,7 @@ int p1Move(struct shmseg *smap)
         // if X has left bottom and right bottom
         if (tryRow(smap,2,0,2,2) == 0){return 0;}
 
-        // if not, take another available corner(?)
+        // if not, take any other available corner
 
         // try left top
         if (tryPlace(smap,0,0) == 0){return 0;}
@@ -306,8 +306,6 @@ int p1Move(struct shmseg *smap)
         // try right bottom
         if (tryPlace(smap,2,2) == 0){return 0;}
     }
-
-    // fourth move?
 }
 
 // return 1 - row win not found
@@ -505,7 +503,7 @@ int main(int argc, char* argv[])
     smap->counter = 0;
 
     // 11. Enter the gameplay loop.
-    while (smap->counter > -1)
+    while (smap->counter != -1)
     {
         // 1. reserve player 1's semaphore
         checkError(reserveSem(semid, 0), "reserveSem");
@@ -534,6 +532,7 @@ int main(int argc, char* argv[])
 
     // 12. Open the FIFO xoSync for write
     checkError(fd = open("xoSync", O_WRONLY), "open producer");
+    printf("DEBUG Step 12 done\n");
     // 13. Close the FIFO
     close(fd);
     // 14. Detach the segment of shared memory
@@ -541,6 +540,5 @@ int main(int argc, char* argv[])
     // 15. Delete semaphores and shared memory before exiting
     checkError(semctl(semid,0,IPC_RMID),"semctl");
     checkError(shmctl(shmid,0,IPC_RMID),"shmctl");
-
     exit(EXIT_SUCCESS);
 }
