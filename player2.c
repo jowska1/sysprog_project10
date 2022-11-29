@@ -1,3 +1,11 @@
+/* Group Members:
+      Tia Malley - tcm326
+      Blake ...
+      Rix ...
+
+   Player Two - plays O
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -29,9 +37,9 @@ int checkBoardFull(struct shmseg *smap)
     int j = 0;
     int spacesFilled = 0;
 
-    for (i = 0; i <= 3; i++)
+    for (i = 0; i < 3; i++)
     {
-        for (j = 0; j <= 3; j++)
+        for (j = 0; j < 3; j++)
         {
             if (smap->board[i][j] == 1 || smap->board[i][j] == -1)
             {
@@ -296,14 +304,14 @@ void printBoard(struct shmseg *smap)
 
 // return 1 - row win not found
 // return 0 - row win found
-int rowWin(struct shmseg *smap)
+int rowWin(struct shmseg *smap, int num)
 {
     int i;
   
     for(i = 0; i < 3; i++)
     {
         // row win found
-        if(smap->board[i][0] == -1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
+        if(smap->board[i][0] == num && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
 	    {
 	        return 0;
 	    }
@@ -312,14 +320,14 @@ int rowWin(struct shmseg *smap)
     return 1;
 }
 
-int columnWin(struct shmseg *smap)
+int columnWin(struct shmseg *smap, int num)
 {
     int i;
 
     for(i = 0; i < 3; i++)
     {
         // column win found
-        if(smap->board[0][i] == -1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
+        if(smap->board[0][i] == num && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
 	    {
 	        return 0;
 	    }
@@ -328,16 +336,16 @@ int columnWin(struct shmseg *smap)
     return 1;
 }
 
-int diagonalWin(struct shmseg *smap)
+int diagonalWin(struct shmseg *smap, int num)
 {
     // top left to bottom right diagonal win
-    if(smap->board[0][0] == -1 && smap->board[0][0] == smap->board[1][1] && smap->board[1][1] == smap->board[2][2])
+    if(smap->board[0][0] == num && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
     {
         return 0;
     }
   
     // bottom left to top right diagonal win
-    if(smap->board[2][0] == -1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
+    if(smap->board[2][0] == num && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
     {
         return 0;
     }
@@ -424,16 +432,16 @@ int main(int argc, char *argv[])
 
       // 1 - reserve player 2's semaphore
       checkError(reserveSem(semid, 1), "reserveSem");
-      
-      // 2 - display the state of the game board
-      printf("Player 1 Move\n");
-      printBoard(smap);
-      
+
       // 3 - if the turn counter is -1, exit the loop
       if (smap->counter == -1)
 	{
 	  break;
 	}
+      
+      // 2 - display the state of the game board
+      printf("Player 1 Move\n");
+      printBoard(smap);
 	  
       // 4 - make players 2 move
       // checks to see if player two needs to block player one
@@ -478,18 +486,6 @@ int main(int argc, char *argv[])
       // 5 - display the state of the game board
       printf("Player 2 Move\n");
       printBoard(smap);
-
-      // 5 1/2 - if player 2 has somehow won, or no more plays exist set the turn counter to -1
-      if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 )
-	    {
-	        printf("Player 2 Won!!\n");
-	        smap->counter = -1;
-	    }
-        else if(checkBoardFull(smap) == 0)
-	    {
-	        printf("Tie!!\n");
-	        smap->counter = -1;
-	    }
       
       // 6 - increment the game turn by 1
       smap->counter++;
@@ -506,5 +502,6 @@ int main(int argc, char *argv[])
   // 12 - Detach the segment of shared memory
   checkError(shmdt(smap), "shmdt");
 
+  printf("Exiting...\n");
   exit(EXIT_SUCCESS);
 }
