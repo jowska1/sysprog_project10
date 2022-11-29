@@ -214,7 +214,7 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[1][1] == 1 && smap->board[2][0] == 1 && smap->board[0][2] == 0)
     {
       // top right block
-      smap->board[2][0] == -1;
+      smap->board[0][2] == -1;
       return 0;
     }
   
