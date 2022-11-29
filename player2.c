@@ -56,19 +56,19 @@ int rowBlock(struct shmseg *smap)
       if(smap->board[i][0] == 1 && smap->board[i][1] == 1 && smap->board[i][2] == 0)
 	{
 	  // right block
-	  smap->board[i][2] == -1;
+	  smap->board[i][2] = -1;
 	  return 0;
 	}
       if(smap->board[i][0] == 1 && smap->board[i][2] == 1 && smap->board[i][1] == 0)
 	{
 	  // middle block
-	  smap->board[i][1] == -1;
+	  smap->board[i][1] = -1;
 	  return 0;
 	}
       if (smap->board[i][1] == 1 && smap->board[i][2] == 1 && smap->board[i][0] == 0)
 	{
 	  // left block
-	  smap->board[i][0] == -1;
+	  smap->board[i][0] = -1;
 	  return 0;
 	}
     }
@@ -114,19 +114,19 @@ int columnBlock(struct shmseg *smap)
       if(smap->board[0][i] == 1 && smap->board[1][i] == 1 && smap->board[2][i] == 0)
 	{
 	  // bottom block
-	  smap->board[2][i] == -1;
+	  smap->board[2][i] = -1;
 	  return 0;
 	}
       if(smap->board[0][i] == 1 && smap->board[2][i] == 1 && smap->board[1][i] == 0)
 	{
 	  // middle block
-	  smap->board[1][i] == -1;
+	  smap->board[1][i] = -1;
 	  return 0;
 	}
       if (smap->board[1][i] == 1 && smap->board[2][i] == 1 && smap->board[0][i] == 0)
 	{
 	  // top block
-	  smap->board[0][i] == -1;
+	  smap->board[0][i] = -1;
 	  return 0;
 	}
     }
@@ -182,19 +182,19 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[0][0] == 1 && smap->board[1][1] == 1 && smap->board [2][2] == 0)
     {
       // bottom right block
-      smap->board[2][2] == -1;
+      smap->board[2][2] = -1;
       return 0;
     }
   if(smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
     {
       // center block
-      smap->board[1][1] == -1;
+      smap->board[1][1] = -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][2] == 1 && smap->board[0][0] == 0)
     {
       // top left block
-      smap->board[0][0] == -1;
+      smap->board[0][0] = -1;
       return 0;
     }
 
@@ -202,19 +202,19 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[0][2] == 1 && smap->board[1][1] == 1 && smap->board[2][0] == 0)
     {
       // bottom left block
-      smap->board[2][0] == -1;
+      smap->board[2][0] = -1;
       return 0;
     }
   if(smap->board[0][2] == 1 && smap->board[2][0] == 1 && smap->board[1][1] == 0)
     {
       // center block
-      smap->board[1][1] == -1;
+      smap->board[1][1] = -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][0] == 1 && smap->board[0][2] == 0)
     {
       // top right block
-      smap->board[0][2] == -1;
+      smap->board[0][2] = -1;
       return 0;
     }
   
@@ -329,8 +329,6 @@ int main(int argc, char *argv[])
   checkError(semid = semget(semK, 0, 0), "semget");
   checkError(shmid = shmget(shmK, 0, 0), "shmget");
 
-  printf("DEBUG passed shared mem retrieval\n");
-
   // 8 - Attach the shared memory segment
   smap = shmat(shmid, NULL, 0);
   if(smap == (void *) -1)
@@ -341,7 +339,6 @@ int main(int argc, char *argv[])
   // 9 - Enter the game play loop
   while(1)
     {
-      printf("DEBUG entering game loop\n");
 
       // 1 - reserve player 2's semaphore
       checkError(reserveSem(semid, 1), "reserveSem");
