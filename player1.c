@@ -4,6 +4,7 @@
       Rix ...
 
    Player One - plays X
+   Goal is to win.
  */
 
 #include <stdio.h>
@@ -24,16 +25,6 @@
 #define BUF_SIZE 1024
 #define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 
-// Program 10 - Player 1
-
-/*
-    Notes:
-    shmget() can obtain the identifier of a previously created
-    shared memory segment, or it can create a new set
-    1 for X, -1 for O
-    p2 is responsible for iterating counter
-*/
-
 // block of shared memory
 struct shmseg
 {
@@ -41,6 +32,7 @@ struct shmseg
     int board[3][3];
 };
 
+// function that fills the board with 0's (blank spaces) before the game is started
 void resetBoard(struct shmseg *smap)
 {
     int i = 0;
@@ -85,7 +77,8 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
-// simply try placing in a spot
+// function that checks if a specific board spot is empty
+// if empty, places a 1 (X) in the spot - if not empty, does nothing
 int tryPlace(struct shmseg *smap, int x, int y)
 {
     if (smap->board[x][y] == 0)
@@ -327,6 +320,7 @@ int p1Move(struct shmseg *smap)
     }
 }
 
+// function that checks if there is a row win
 // return 1 - row win not found
 // return 0 - row win found
 int rowWin(struct shmseg *smap, int num)
@@ -345,6 +339,9 @@ int rowWin(struct shmseg *smap, int num)
     return 1;
 }
 
+// function that checks if there is a column win
+// return 1 - column win not found
+// return 0 - column win found
 int columnWin(struct shmseg *smap, int num)
 {
     int i;
@@ -361,6 +358,9 @@ int columnWin(struct shmseg *smap, int num)
     return 1;
 }
 
+// function that checks if there is a diagonal win
+// return 1 - diagonal win not found
+// return 0 - diagonal win found
 int diagonalWin(struct shmseg *smap, int num)
 {
     // top left to bottom right diagonal win
@@ -374,10 +374,13 @@ int diagonalWin(struct shmseg *smap, int num)
     {
         return 0;
     }
-  
+
+    // diagonal win not found
     return 1;
 }
 
+// function provided by Mr. Knight in guided exercise 11
+// checks if an error occured, if one has prints error message
 int checkError(int e, const char *str)
 {
     if (e == -1)
@@ -389,6 +392,7 @@ int checkError(int e, const char *str)
     return e;
 }
 
+// function that is used to change -1 to O, 1 to X, and 0 to a blank space for the board
 char intToChar(struct shmseg *smap, int i, int j)
 {
     if (smap->board[i][j] == 1)
@@ -517,9 +521,10 @@ int main(int argc, char* argv[])
     // 10. Close the FIFO
     close(fd);
 
-    // initialize counter to 0
+    // TODO initialize counter to 0 here?
     smap->counter = 0;
 
+    // function to ensure the board is empty (stores 0's everywhere)
     resetBoard(smap);
 
     // 11. Enter the gameplay loop.
@@ -529,18 +534,20 @@ int main(int argc, char* argv[])
         checkError(reserveSem(semid, 0), "reserveSem");
 
 	// 2. display the state of the game board
+	// if statement used to print title for the board that player 2 made a move in
 	if(checkBoardFull(smap) == 1)
 	  {
 	    printf("Player 2 Move\n");
 	  }
 	printBoard(smap);
 	
-	// 2 1/2. if the turn counter is -1, exit the loop (player 2 won)
+	// 2 1/2. if the turn counter is -1, exit the loop (player 2 won somehow)
 	if (rowWin(smap, -1) == 0 || columnWin(smap, -1) == 0 || diagonalWin(smap, -1) == 0)
 	{
 	  printf("Player 2 Won!!\n");
 	  smap->counter = -1;
 	}
+	// else statement that executes if player 2 has not won
 	else
 	  {
 	    // 3. make player 1's move
@@ -579,3 +586,4 @@ int main(int argc, char* argv[])
     printf("Exiting...\n");
     exit(EXIT_SUCCESS);
 }
+
