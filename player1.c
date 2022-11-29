@@ -35,6 +35,21 @@ struct shmseg
     int board[3][3];
 };
 
+// initialize game board to store all 0's
+void resetBoard(struct shmseg *smap)
+{
+  int i = 0;
+  int j = 0;
+  
+  for (i = 0; i <= 3; i++)
+    {
+      for (j = 0; j <= 3; j++)
+        {
+	  smap->board[i][j] = 0;
+        }
+    }
+}
+
 // check if all 9 spots are filled
 // if full, return 1 
 // else, return 0
