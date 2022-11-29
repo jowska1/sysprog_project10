@@ -532,10 +532,17 @@ int main(int argc, char* argv[])
         printBoard(smap);
 
         // 5. if player 1 has won, or no more plays exist set the turn counter to -1
-        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 || checkBoardFull(smap) == 1)
-        {
-            smap->counter = -1;
-        }
+        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 )
+	  {
+	    printf("Player 1 Won!!\n");
+	    smap->counter = -1;
+	  }
+
+	if(checkBoardFull(smap) == 1)
+	  {
+	    printf("Tie!!\n");
+	    smap->counter = -1;
+	  }
 
         // 6. release player 2's semaphore
         checkError(releaseSem(semid, 1), "releaseSem");
