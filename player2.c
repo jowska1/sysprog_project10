@@ -1,386 +1,225 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <time.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
+#include <time.h>
 #include "binary_sem.h"
 #include "semun.h"
-
-#define BUF_SIZE 1024
-#define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
-
-// Program 10 - Player 1
-
-/*
-    Notes:
-    shmget() can obtain the identifier of a previously created
-    shared memory segment, or it can create a new set
-    1 for X, -1 for O
-    p2 is responsible for iterating counter
-*/
 
 // block of shared memory
 struct shmseg
 {
-    int counter;
-    int board[3][3];
+  int counter;
+  int board[3][3];
 };
 
-// initialize game board to store all 0's
-void resetBoard(struct shmseg *smap)
+int tryRowBlock(struct shmseg *smap)
 {
-  int i = 0;
-  int j = 0;
-  
-  for (i = 0; i <= 3; i++)
+  int i;
+
+  for(i = 0; i < 3; i++)
     {
-      for (j = 0; j <= 3; j++)
-        {
-	  smap->board[i][j] = 0;
-        }
+      if(smap->board[i][0] == 1 && smap->board[i][1] == 1 && smap->board[i][2] == 0)
+	{
+	  // right block
+	  return 0;
+	}
+      if(smap->board[i][0] == 1 && smap->board[i][2] == 1 && smap->board[i][1] == 0)
+	{
+	  // middle block
+	  return 0;
+	}
+      if (smap->board[i][1] == 1 && smap->board[i][2] == 1 && smap->board[i][0] == 0)
+	{
+	  // left block
+	  return 0;
+	}
     }
+
+  // row block not found
+  return 1;
 }
 
-// check if all 9 spots are filled
-// if full, return 1 
-// else, return 0
-// TODO test
-int checkBoardFull(struct shmseg *smap)
+// function that checks if two X's (1) are found in a row and places an O (-1) to block
+int rowBlock(struct shmseg *smap)
 {
-    int i = 0;
-    int j = 0;
-    int spacesFilled = 0;
+  int i;
 
-    for (i = 0; i <= 3; i++)
+  for(i = 0; i < 3; i++)
     {
-        for (j = 0; j <= 3; j++)
-        {
-            if (smap->board[i][j] != 0)
-            {
-                spacesFilled++;
-            }
-        }
+      if(smap->board[i][0] == 1 && smap->board[i][1] == 1 && smap->board[i][2] == 0)
+	{
+	  // right block
+	  smap->board[i][2] == -1;
+	  return 0;
+	}
+      if(smap->board[i][0] == 1 && smap->board[i][2] == 1 && smap->board[i][1] == 0)
+	{
+	  // middle block
+	  smap->board[i][1] == -1;
+	  return 0;
+	}
+      if (smap->board[i][1] == 1 && smap->board[i][2] == 1 && smap->board[i][0] == 0)
+	{
+	  // left block
+	  smap->board[i][0] == -1;
+	  return 0;
+	}
     }
-    
-    if (spacesFilled == 9)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+
+  // row block not found
+  return 1;
 }
 
-// simply try placing in a spot
-int tryPlace(struct shmseg *smap, int x, int y)
+int tryColumnBlock(struct shmseg *smap)
 {
-    if (smap->board[x][y] == 0)
+  int i;
+
+  for(i = 0; i < 3; i++)
     {
-        smap->board[x][y] = 1;
-        return 0;
+      if(smap->board[0][i] == 1 && smap->board[1][i] == 1 && smap->board[2][i] == 0)
+	{
+	  // bottom block
+	  return 0;
+	}
+      if(smap->board[0][i] == 1 && smap->board[2][i] == 1 && smap->board[1][i] == 0)
+	{
+	  // middle block
+	  return 0;
+	}
+      if (smap->board[1][i] == 1 && smap->board[2][i] == 1 && smap->board[0][i] == 0)
+	{
+	  // top block
+	  return 0;
+	}
     }
-    else {return 1;}
+
+  // column block not found
+  return 1;
 }
 
-// tryRow, tryColumn, and tryDiagonal are helper functions for p1Move
-// that try to complete a row/column/diagonal for a win
-// Each function recieves coordinates for 2 spaces, checks if X is placed in them,
-// then tries to place in the winning position between the 2 spaces
-
-// look for winning row placement and place if so
-// 3 rows: 0,0 and 0,2 - 1,0 and 1,2 - 2,0 and 2,0 - 2,2
-int tryRow(struct shmseg *smap, int x1, int y1, int x2, int y2)
-{
-    // check x1, y1 for X
-    if (smap->board[x1][y1] != 1)
-    {
-        return 1;
-    }
-    // check x2, y2 for X
-    if (smap->board[x2][y2] != 1)
-    {
-        return 1;
-    }
-
-    // for any row, x1 should equal winX
-    int winX = x1;
-    // and winY will always be 1
-    int winY = 1;
-
-    // if winning place is available
-    if (smap->board[winX][winY] == 0)
-    {
-        // place
-        smap->board[winX][winY] = 1;
-        return 0;
-    }
-
-    // if we can't place
-    return 1;
-}
-
-// look for winning column placement and place if so
-// 3 columns: 0,0 and 2,0 - 0,1 and 2,1 - 0,2 and 2,2
-int tryColumn(struct shmseg *smap, int x1, int y1, int x2, int y2)
-{
-    // check x1, y1 for X
-    if (smap->board[x1][y1] != 1)
-    {
-        return 1;
-    }
-    // check x2, y2 for X
-    if (smap->board[x2][y2] != 1)
-    {
-        return 1;
-    }
-
-    // for any column, winX will always be 1
-    int winX = 1;
-    // and winY should equal y1
-    int winY = y1;
-
-    // if winning place is available
-    if (smap->board[winX][winY] == 0)
-    {
-        // place
-        smap->board[winX][winY] = 1;
-        return 0;
-    }
-
-    // if we can't place
-    return 1;
-}
-
-// look for winning diagonal placement and place if so
-// 2 diagonal: 0,0 and 2,2 - 2,0 and 0,2
-int tryDiagonal(struct shmseg *smap, int x1, int y1, int x2, int y2)
-{
-    // check x1, y1 for X
-    if (smap->board[x1][y1] != 1)
-    {
-        return 1;
-    }
-    // check x2, y2 for X
-    if (smap->board[x2][y2] != 1)
-    {
-        return 1;
-    }
-
-    // the winning place will always be 1,1
-
-    // if winning place is available
-    if (smap->board[1][1] == 0)
-    {
-        // place
-        smap->board[1][1] = 1;
-        return 0;
-    }
-
-    // if we can't place
-    return 1;
-}
-
-// **end helper functions**
-
-// first play - a random corner
-// second play - the opposite corner (if available)
-// third play - try the center if O hasn't placed there
-// returns 0 if move successfully made
-int p1Move(struct shmseg *smap)
-{
-    // Stores a randomly generated value
-    int r;
-
-    // first move: choose a random corner to place X
-    // corners: 0,0  0,2  2,0  2,2
-    if (smap->counter == 0)
-    {
-        // Seed time
-        time_t t;
-        srand((unsigned) time(&t));
-
-        // Generate random number from 1-4
-        r = rand() % (3 + 1 - 0) + 1;
-        if (r == 1)
-        {
-            smap->board[0][0] = 1;
-            return 0;
-        }
-        else if (r == 2)
-        {
-            smap->board[0][2] = 1;
-            return 0;
-        }
-        else if (r == 3)
-        {
-            smap->board[2][0] = 1;
-            return 0;
-        }
-        else if (r == 4)
-        {
-            smap->board[2][2] = 1;
-            return 0;
-        }
-        // This should never happen
-        else
-        {
-            printf("ERROR: r not a value between 1-4\n");
-            printf("r's value: %d\n", r);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // p1's second move will first try to 
-    // place at the opposite corner of p1's first move
-    if (smap->counter == 1)
-    {
-        // if X is left top (and right bottom is clear)
-        if (smap->board[0][0] == 1 && smap->board[2][2] == 0)
-        {
-            // place right bottom
-            smap->board[2][2] = 1;
-            return 0;
-        }
-        // if X is right top
-        else if (smap->board[0][2] == 1 && smap->board[2][0] == 0)
-        {
-            // place left bottom
-            smap->board[2][0] = 1;
-            return 0;
-        }
-        // if X is left bottom
-        else if (smap->board[2][0] == 1 && smap->board[0][2] == 0)
-        {
-            // place right top
-            smap->board[0][2] = 1;
-            return 0;
-        }
-        // if X is right bottom
-        else if (smap->board[2][2] == 1 && smap->board[0][0] == 0)
-        {
-            // place left top
-            smap->board[0][0] = 1;
-            return 0;
-        }
-        // if we make it here, O is placed in the opposite corner as X
-        // so X should just place in a random corner(?)
-        // NOTE I haven't seen if this works or not yet
-        else
-        {
-            // try left top
-            if (tryPlace(smap,0,0) == 0){return 0;}
-            // try right top
-            if (tryPlace(smap,0,2) == 0){return 0;}
-            // try left bottom
-            if (tryPlace(smap,2,0) == 0){return 0;}
-            // try right bottom
-            if (tryPlace(smap,2,2) == 0){return 0;}
-        }
-    }
-
-    // third (or more) move:
-    // if X is placed in 2 opposite corners, p1 should try to play center
-    // for a diagonal win
-    if (smap->counter >= 2)
-    {
-        // if X has left top and bottom right
-        if (tryDiagonal(smap,0,0,2,2) == 0){return 0;}
-        // if X has bottom left and top right
-        if (tryDiagonal(smap,2,0,0,2) == 0){return 0;}
-
-        // if we end up here, x has no diagonal play -or- O has the center
-        // check if X can win in a row or column
-
-        // if X has left top and left bottom
-        if (tryColumn(smap,0,0,2,0) == 0){return 0;}
-        // if X has right top and right bottom
-        if (tryColumn(smap,0,2,2,2) == 0){return 0;}
-        // if X has left top and right top
-        if (tryRow(smap,0,0,0,2) == 0){return 0;}
-        // if X has left bottom and right bottom
-        if (tryRow(smap,2,0,2,2) == 0){return 0;}
-
-        // if not, take any other available corner
-
-        // try left top
-        if (tryPlace(smap,0,0) == 0){return 0;}
-        // try right top
-        if (tryPlace(smap,0,2) == 0){return 0;}
-        // try left bottom
-        if (tryPlace(smap,2,0) == 0){return 0;}
-        // try right bottom
-        if (tryPlace(smap,2,2) == 0){return 0;}
-    }
-}
-
-// return 1 - row win not found
-// return 0 - row win found
-int rowWin(struct shmseg *smap)
-{
-    int i;
-  
-    for(i = 0; i < 3; i++)
-    {
-        // row win found
-        if(smap->board[i][0] == 1 && smap->board[i][0] == smap->board[i][1] && smap->board[i][1] == smap->board[i][2])
-	    {
-	        return 0;
-	    }
-    }
-    // row win not found
-    return 1;
-}
-
-int columnWin(struct shmseg *smap)
+// function that checks if two X's (1) are found in a column and places an O (-1) to block
+int columnBlock(struct shmseg *smap)
 {
     int i;
 
-    for(i = 0; i < 3; i++)
+  for(i = 0; i < 3; i++)
     {
-        // column win found
-        if(smap->board[0][i] == 1 && smap->board[0][i] == smap->board[1][i] && smap->board[1][i] == smap->board[2][i])
-	    {
-	        return 0;
-	    }
+      if(smap->board[0][i] == 1 && smap->board[1][i] == 1 && smap->board[2][i] == 0)
+	{
+	  // bottom block
+	  smap->board[2][i] == -1;
+	  return 0;
+	}
+      if(smap->board[0][i] == 1 && smap->board[2][i] == 1 && smap->board[1][i] == 0)
+	{
+	  // middle block
+	  smap->board[1][i] == -1;
+	  return 0;
+	}
+      if (smap->board[1][i] == 1 && smap->board[2][i] == 1 && smap->board[0][i] == 0)
+	{
+	  // top block
+	  smap->board[0][i] == -1;
+	  return 0;
+	}
     }
-    // column win not found
-    return 1;
+
+  // column block not found
+  return 1;
 }
 
-int diagonalWin(struct shmseg *smap)
+int tryDiagonalBlock(struct shmseg *smap)
 {
-    // top left to bottom right diagonal win
-    if(smap->board[0][0] == 1 && smap->board[0][0] == smap->board [1][1] && smap->board[1][1] == smap->board[2][2])
+  // top left to bottom right block
+  if(smap->board[0][0] == 1 && smap->board[1][1] == 1 && smap->board [2][2] == 0)
     {
-        return 0;
+      // bottom right block
+      return 0;
+    }
+  if(smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
+    {
+      // center block
+      return 0;
+    }
+  if(smap->board[1][1] == 1 && smap->board[2][2] == 1 && smap->board[0][0] == 0)
+    {
+      // top left block
+      return 0;
+    }
+
+  // top right to bottom left block
+  if(smap->board[0][2] == 1 && smap->board[1][1] == 1 && smap->board[2][0] == 0)
+    {
+      // bottom left block
+      return 0;
+    }
+  if(smap->board[0][2] == 1 && smap->board[2][0] == 1 && smap->board[1][1] == 0)
+    {
+      // center block
+      return 0;
+    }
+  if(smap->board[1][1] == 1 && smap->board[2][0] == 1 && smap->board[0][2] == 0)
+    {
+      // top right block
+      return 0;
     }
   
-    // bottom left to top right diagonal win
-    if(smap->board[2][0] == 1 && smap->board[2][0] == smap->board[1][1] && smap->board[1][1] == smap->board[0][2])
-    {
-        return 0;
-    }
-  
-    return 1;
+  // diagonal block not found
+  return 1;
 }
 
-int checkError(int e, const char *str)
+// function that checks if two X's (1) are found diagonally and places an O (-1) to block
+int diagonalBlock(struct shmseg *smap)
 {
-    if (e == -1)
+  // top left to bottom right block
+  if(smap->board[0][0] == 1 && smap->board[1][1] == 1 && smap->board [2][2] == 0)
     {
-        if (errno == EINTR) return e;
-        perror(str);
-        exit(EXIT_FAILURE);
+      // bottom right block
+      smap->board[2][2] == -1;
+      return 0;
     }
-    return e;
+  if(smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
+    {
+      // center block
+      smap->board[1][1] == -1;
+      return 0;
+    }
+  if(smap->board[1][1] == 1 && smap->board[2][2] == 1 && smap->board[0][0] == 0)
+    {
+      // top left block
+      smap->board[0][0] == -1;
+      return 0;
+    }
+
+  // top right to bottom left block
+  if(smap->board[0][2] == 1 && smap->board[1][1] == 1 && smap->board[2][0] == 0)
+    {
+      // bottom left block
+      smap->board[2][0] == -1;
+      return 0;
+    }
+  if(smap->board[0][2] == 1 && smap->board[2][0] == 1 && smap->board[1][1] == 0)
+    {
+      // center block
+      smap->board[1][1] == -1;
+      return 0;
+    }
+  if(smap->board[1][1] == 1 && smap->board[2][0] == 1 && smap->board[0][2] == 0)
+    {
+      // top right block
+      smap->board[2][0] == -1;
+      return 0;
+    }
+  
+  // diagonal block not found
+  return 1;
 }
 
 char intToChar(struct shmseg *smap, int i, int j)
@@ -424,145 +263,157 @@ void printBoard(struct shmseg *smap)
     printf("\n");
 }
 
-int main(int argc, char* argv[])
+// function provided by Mr. Knight in guided exercise 11
+// checks if an error occured, if one has prints error message
+int checkError(int e, const char *str)
 {
-    // Misc. setup
-    int fd;
-    int rblock, cblock, dblock;
-
-    // Seed time
-    time_t t;
-    srand((unsigned) time(&t));
-
-    // Semaphore/shared memory setup
-
-    struct shmseg *smap;
-
-    // semaphore id, shared memory id
-    int semid, shmid, val;
-    //union semun dummy;
-
-    // semaphore key and shared memory key
-    key_t semK, shmK;
-
-    // 1. Attempt to create FIFO called xoSync
-    if (mkfifo("xoSync", S_IRWXU) == -1)
+  if(e == -1)
     {
-        // If the error isn't EEXIST
-        if (errno != EEXIST)
-        {
-            perror("mkfifo");
-            exit(EXIT_FAILURE);
-        }
-        printf("FIFO already exists\n");
+      if(errno == EINTR) return e;
+      perror(str);
+      exit(EXIT_FAILURE);
     }
-    else {printf("FIFO created\n");}
+  return e;
+}
 
-    // 2. Generate 2 random numbers for creating System V keys
-    // Generate 2 values between 10-99
-    int num1 = rand() % (99 + 1 - 10) + 10;
-    int num2 = rand() % (99 + 1 - 10) + 10;
+int main(int argc, char *argv[])
+{
+  struct shmseg *smap;
+  int fd;
+  int num1, num2, x, y, empty = 1;
+  int semid, shmid;
+  int rblockFound, cblockFound, dblockFound;
+  key_t semK, shmK;
+  time_t t;
 
-    // 3. Generate the System V keys with ftok using the random numbers 
-    // and the FIFO xoSync. Use the first value generated as the projection value
-    // for shared memory and the second value generated 
-    // as the projection value for the semaphores.
+  srand((unsigned) time(&t));
 
-    shmK = ftok("xoSync",num1);
-    if (shmK == -1)
+  // 1 - checks to see if FIFO exists - if equal to -1 mkfifo has failed
+  if(mkfifo("xoSync", S_IRWXU) == -1)
+    {
+      // checks to see if the FIFO doesn't already exists
+      if(errno != EEXIST)
+	{
+	  perror("mkfifo producer");
+	  exit(EXIT_FAILURE);
+	}
+    }
+
+  // 2 - open FIFO xoSync for read
+  checkError(fd = open("xoSync", O_RDONLY), "open FIFO");
+  
+  // 3- reading string from the FIFO
+  checkError(read(fd, &num1, sizeof(num1)), "read num");
+  checkError(read(fd, &num2, sizeof(num2)), "read num");
+
+  // 5 - close FIFO
+  close(fd);
+
+  // 6 - Generate System V keys with ftok
+  // first number uses for shared memory
+  shmK = ftok("xoSync", num1);
+  if (shmK == -1)
     {
         perror("ftok1");
         exit(EXIT_FAILURE);
     }
-    semK = ftok("xoSync",num2);
-    if (semK == -1)
+  // second number used for semaphores
+  semK = ftok("xoSync", num2);
+  if (semK == -1)
     {
-        perror("ftok2");
+        perror("ftok1");
         exit(EXIT_FAILURE);
     }
 
-    // 4. Create the block of shared memory
-    // TODO verify this is right
-    checkError(shmid = shmget(shmK, sizeof(struct shmseg), IPC_CREAT | OBJ_PERMS), "shmget");
+  // 7 - retrieve the shared memory and the semaphore set create by player 1
+  checkError(semid = semget(semK, 0, 0), "semget");
+  checkError(shmid = shmget(shmK, 0, 0), "shmget");
 
-    // 5. Create a semaphore set with a size of 2
-    checkError(semid = semget(semK, 2, IPC_CREAT | OBJ_PERMS), "semget");
+  printf("DEBUG passed shared mem retrieval\n");
 
-    // 6. Initialize the semaphores in the semaphore set.
-    // 0 is p1, 1 is p2
-    // Set one semaphore to available
-    checkError(initSemAvailable(semid,0), "initSemAvailable");
-    // Set one semaphore to in use
-    checkError(initSemInUse(semid,1), "initSemInUse");
-
-    // 7. Attach the segment of shared memory to process and initialize it
-    smap = shmat(shmid, NULL, 0);
-    if (smap == (void *) -1)
+  // 8 - Attach the shared memory segment
+  smap = shmat(shmid, NULL, 0);
+  if(smap == (void *) -1)
     {
-        checkError(-1, "shmat");
+      checkError(-1, "shmat");
     }
-
-    // 8. Open the FIFO xoSync for write.
-    checkError(fd = open("xoSync", O_WRONLY), "open producer for write");
-
-    // 9. Write the random numbers generated in step 2 and used in step 3 to the FIFO.
-    checkError(write(fd, &num1, sizeof(num1)), "write 1");
-    checkError(write(fd, &num2, sizeof(num2)), "write 2");
-
-    // 10. Close the FIFO
-    close(fd);
-
-    // TODO initialize counter to 0 here?
-    smap->counter = 0;
-
-    // board stores 0's in every spot
-    resetBoard(smap);
-    
-    // 11. Enter the gameplay loop.
-    while (smap->counter != -1)
+  
+  // 9 - Enter the game play loop
+  while(1)
     {
-        // 1. reserve player 1's semaphore
-        checkError(reserveSem(semid, 0), "reserveSem");
+      printf("DEBUG entering game loop\n");
 
-        // 2. display the state of the game board
-        printBoard(smap);
+      // 1 - reserve player 2's semaphore
+      checkError(reserveSem(semid, 1), "reserveSem");
+      
+      // 2 - display the state of the game board
+      printf("Player 1 Move\n");
+      printBoard(smap);
+      
+      // 3 - if the turn counter is -1, exit the loop
+      if (smap->counter == -1)
+	{
+	  break;
+	}
+	  
+      // 4 - make players 2 move
+      // checks to see if player two needs to block player one
+      // if block is found O (-1) is placed in the functions
+      rblockFound = tryRowBlock(smap);
+      cblockFound = tryColumnBlock(smap);
+      dblockFound = tryDiagonalBlock(smap);
 
-        // 3. make player 1's move
-        p1Move(smap);
+      if(rblockFound == 0)
+	{
+	  rowBlock(smap);
+	}
+      else if(cblockFound == 0)
+	{
+	  columnBlock(smap);
+	}
+      else if(dblockFound == 0)
+	{
+	  diagonalBlock(smap);
+	}
 
-        // 4. display the state of the game board.
-        printBoard(smap);
+      // no blocks found - randomly places O
+      if(rblockFound == 1 || cblockFound == 1 || dblockFound == 1)
+	{
+	  // do..while loop that generates two random numbers between 0 and 2
+	  // then checks if that space on the board is empty
+	  // if empty... space stores -1 (for O)
+	  // if not... repeats steps until empty space is found
+	  do {
+	    x = rand() % (2 + 1) + 0;
+	    y = rand() % (2 + 1) + 0;
 
-        // 5. if player 1 has won, or no more plays exist set the turn counter to -1
-        if (rowWin(smap) == 0 || columnWin(smap) == 0 || diagonalWin(smap) == 0 )
-	  {
-	    printf("Player 1 Won!!\n");
-	    smap->counter = -1;
-	  }
+	    if(smap->board[x][y] == 0)
+	      {
+		smap->board[x][y] = -1;
+		empty = 0;
+	      }
+	    
+	  }while(empty == 1);	    
+	}
 
-	if(checkBoardFull(smap) == 1)
-	  {
-	    printf("Tie!!\n");
-	    smap->counter = -1;
-	  }
-
-        // 6. release player 2's semaphore
-        checkError(releaseSem(semid, 1), "releaseSem");
-
-        // DEBUG see counter's value
-        printf("DEBUG: counter = %d\n",smap->counter);
+      // 5 - display the state of the game board
+      printf("Player 2 Move\n");
+      printBoard(smap);
+      
+      // 6 - increment the game turn by 1
+      smap->counter++;
+      // 7 - release player 1's semaphore
+      checkError(releaseSem(semid, 0), "releaseSem");
     }
+  
+  // 10 - Open the FIFO xoSync for read
+  checkError(fd = open("xoSync", O_RDONLY), "open consumer");
+  
+  // 11 - Close the FIFO
+  close(fd);
+  
+  // 12 - Detach the segment of shared memory
+  checkError(shmdt(smap), "shmdt");
 
-    // 12. Open the FIFO xoSync for write
-    checkError(fd = open("xoSync", O_WRONLY), "open producer");
-    printf("DEBUG Step 12 done\n");
-    // 13. Close the FIFO
-    close(fd);
-    // 14. Detach the segment of shared memory
-    checkError(shmdt(smap), "shmdt");
-    // 15. Delete semaphores and shared memory before exiting
-    checkError(semctl(semid,0,IPC_RMID),"semctl");
-    checkError(shmctl(shmid,0,IPC_RMID),"shmctl");
-    exit(EXIT_SUCCESS);
+  exit(EXIT_SUCCESS);
 }
-
