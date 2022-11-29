@@ -4,6 +4,7 @@
       Rix ...
 
    Player Two - plays O
+   Goal is to tie.
  */
 
 #include <stdio.h>
@@ -57,6 +58,8 @@ int checkBoardFull(struct shmseg *smap)
     }
 }
 
+// function that checks if player 2 need to block player 1 in a row
+// returns 1 if no block is found - returns 0 if block is found
 int tryRowBlock(struct shmseg *smap)
 {
   int i;
@@ -115,6 +118,8 @@ int rowBlock(struct shmseg *smap)
   return 1;
 }
 
+// function that checks if player 2 need to block player 1 in a column
+// returns 1 if no block is found - returns 0 if block is found
 int tryColumnBlock(struct shmseg *smap)
 {
   int i;
@@ -173,6 +178,8 @@ int columnBlock(struct shmseg *smap)
   return 1;
 }
 
+// function that checks if player 2 need to block player 1 in a diagonal
+// returns 1 if no block is found - returns 0 if block is found
 int tryDiagonalBlock(struct shmseg *smap)
 {
   // top left to bottom right block
@@ -260,6 +267,7 @@ int diagonalBlock(struct shmseg *smap)
   return 1;
 }
 
+// function that is used to change -1 to O, 1 to X, and 0 to a blank space for the board
 char intToChar(struct shmseg *smap, int i, int j)
 {
     if (smap->board[i][j] == 1)
@@ -301,6 +309,7 @@ void printBoard(struct shmseg *smap)
     printf("\n");
 }
 
+// function that checks if there is a row win
 // return 1 - row win not found
 // return 0 - row win found
 int rowWin(struct shmseg *smap, int num)
@@ -319,6 +328,9 @@ int rowWin(struct shmseg *smap, int num)
     return 1;
 }
 
+// function that checks if there is a column win
+// return 1 - column win not found
+// return 0 - column win found
 int columnWin(struct shmseg *smap, int num)
 {
     int i;
@@ -335,6 +347,9 @@ int columnWin(struct shmseg *smap, int num)
     return 1;
 }
 
+// function that checks if there is a diagonal win
+// return 1 - diagonal win not found
+// return 0 - diagonal win found
 int diagonalWin(struct shmseg *smap, int num)
 {
     // top left to bottom right diagonal win
@@ -348,7 +363,8 @@ int diagonalWin(struct shmseg *smap, int num)
     {
         return 0;
     }
-  
+
+    // 
     return 1;
 }
 
