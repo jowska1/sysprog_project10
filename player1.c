@@ -35,17 +35,16 @@ struct shmseg
     int board[3][3];
 };
 
-// initialize game board to store all 0's
 void resetBoard(struct shmseg *smap)
 {
-  int i = 0;
-  int j = 0;
+    int i = 0;
+    int j = 0;
   
-  for (i = 0; i <= 3; i++)
+    for (i = 0; i <= 3; i++)
     {
-      for (j = 0; j <= 3; j++)
+        for (j = 0; j <= 3; j++)
         {
-	  smap->board[i][j] = 0;
+	        smap->board[i][j] = 0;
         }
     }
 }
@@ -547,7 +546,6 @@ int main(int argc, char* argv[])
 
     // 12. Open the FIFO xoSync for write
     checkError(fd = open("xoSync", O_WRONLY), "open producer");
-    printf("DEBUG Step 12 done\n");
     // 13. Close the FIFO
     close(fd);
     // 14. Detach the segment of shared memory
@@ -555,5 +553,6 @@ int main(int argc, char* argv[])
     // 15. Delete semaphores and shared memory before exiting
     checkError(semctl(semid,0,IPC_RMID),"semctl");
     checkError(shmctl(shmid,0,IPC_RMID),"shmctl");
+    printf("Exiting...\n");
     exit(EXIT_SUCCESS);
 }

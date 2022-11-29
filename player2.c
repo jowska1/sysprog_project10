@@ -19,6 +19,20 @@ struct shmseg
   int board[3][3];
 };
 
+void resetBoard(struct shmseg *smap)
+{
+    int i = 0;
+    int j = 0;
+  
+    for (i = 0; i <= 3; i++)
+    {
+        for (j = 0; j <= 3; j++)
+        {
+	        smap->board[i][j] = 0;
+        }
+    }
+}
+
 // function that checks if two X's (1) are found in a row and places an O (-1) to block
 int rowBlock(struct shmseg *smap)
 {
@@ -29,19 +43,19 @@ int rowBlock(struct shmseg *smap)
       if(smap->board[i][0] == 1 && smap->board[i][1] == 1 && smap->board[i][2] == 0)
 	{
 	  // right block
-	  smap->board[i][2] == -1;
+	  smap->board[i][2] = -1;
 	  return 0;
 	}
       if(smap->board[i][0] == 1 && smap->board[i][2] == 1 && smap->board[i][1] == 0)
 	{
 	  // middle block
-	  smap->board[i][1] == -1;
+	  smap->board[i][1] = -1;
 	  return 0;
 	}
       if (smap->board[i][1] == 1 && smap->board[i][2] == 1 && smap->board[i][0] == 0)
 	{
 	  // left block
-	  smap->board[i][0] == -1;
+	  smap->board[i][0] = -1;
 	  return 0;
 	}
     }
@@ -60,19 +74,19 @@ int columnBlock(struct shmseg *smap)
       if(smap->board[0][i] == 1 && smap->board[1][i] == 1 && smap->board[2][i] == 0)
 	{
 	  // bottom block
-	  smap->board[2][i] == -1;
+	  smap->board[2][i] = -1;
 	  return 0;
 	}
       if(smap->board[0][i] == 1 && smap->board[2][i] == 1 && smap->board[1][i] == 0)
 	{
 	  // middle block
-	  smap->board[1][i] == -1;
+	  smap->board[1][i] = -1;
 	  return 0;
 	}
       if (smap->board[1][i] == 1 && smap->board[2][i] == 1 && smap->board[0][i] == 0)
 	{
 	  // top block
-	  smap->board[0][i] == -1;
+	  smap->board[0][i] = -1;
 	  return 0;
 	}
     }
@@ -88,19 +102,19 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[0][0] == 1 && smap->board[1][1] == 1 && smap->board [2][2] == 0)
     {
       // bottom right block
-      smap->board[2][2] == -1;
+      smap->board[2][2] = -1;
       return 0;
     }
   if(smap->board[0][0] == 1 && smap->board[2][2] == 1 && smap->board[1][1] == 0)
     {
       // center block
-      smap->board[1][1] == -1;
+      smap->board[1][1] = -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][2] == 1 && smap->board[0][0] == 0)
     {
       // top left block
-      smap->board[0][0] == -1;
+      smap->board[0][0] = -1;
       return 0;
     }
 
@@ -108,24 +122,40 @@ int diagonalBlock(struct shmseg *smap)
   if(smap->board[0][2] == 1 && smap->board[1][1] == 1 && smap->board[2][0] == 0)
     {
       // bottom left block
-      smap->board[2][0] == -1;
+      smap->board[2][0] = -1;
       return 0;
     }
   if(smap->board[0][2] == 1 && smap->board[2][0] == 1 && smap->board[1][1] == 0)
     {
       // center block
-      smap->board[1][1] == -1;
+      smap->board[1][1] = -1;
       return 0;
     }
   if(smap->board[1][1] == 1 && smap->board[2][0] == 1 && smap->board[0][2] == 0)
     {
       // top right block
-      smap->board[2][0] == -1;
+      smap->board[2][0] = -1;
       return 0;
     }
   
   // diagonal block not found
   return 1;
+}
+
+char intToChar(struct shmseg *smap, int i, int j)
+{
+    if (smap->board[i][j] == 1)
+    {
+        return 'X';
+    }
+    else if (smap->board[i][j] == -1)
+    {
+        return 'O';
+    }
+    else
+    {
+        return ' ';
+    }
 }
 
 // function to print the tic-tac-toe board
@@ -135,10 +165,9 @@ void printBoard(struct shmseg *smap)
     int a = 0;
     for(int i = 1; i <= iteration; i++)
     {
-        
         if (i % 2 != 0 )
         {
-            printf("  %d | %d | %d ", smap->board[a][0],smap->board[a][1],smap->board[a][2]);
+            printf("  %c | %c | %c ",  intToChar(smap,a,0), intToChar(smap,a,1), intToChar(smap,a,2));
             a++;
         }
         else if (i == 6)
@@ -228,7 +257,7 @@ int main(int argc, char *argv[])
     {
       checkError(-1, "shmat");
     }
-  
+
   // 9 - Enter the game play loop
   while(1)
     {
@@ -243,13 +272,21 @@ int main(int argc, char *argv[])
       
       // 3 - if the turn counter is -1, exit the loop
       if (smap->counter == -1)
-	{
-	  exit(EXIT_SUCCESS);
-	}
+	    {
+        break;
+	    }
 	  
       // 4 - make players 2 move
       // checks to see if player two needs to block player one
       // if block is found O (-1) is placed in the functions
+
+      /*
+      while(rblock != 1 || cblock != 1 || dblock != 1)
+      {
+          if (rowBlock(smap))
+      }
+      */
+
       rblock = rowBlock(smap);
       cblock = columnBlock(smap);
       dblock = diagonalBlock(smap);
