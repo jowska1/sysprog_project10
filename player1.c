@@ -1,6 +1,6 @@
 /* Group Members:
       Tia Malley - tcm326
-      Blake ...
+      Blake Davis - bd1163
       Rix ...
 
    Player One - plays X
@@ -58,7 +58,6 @@ void resetBoard(struct shmseg *smap)
 // check if all 9 spots are filled
 // if full, return 0
 // else, return 1
-// TODO test
 int checkBoardFull(struct shmseg *smap)
 {
     int i = 0;
@@ -489,7 +488,6 @@ int main(int argc, char* argv[])
     }
 
     // 4. Create the block of shared memory
-    // TODO verify this is right
     checkError(shmid = shmget(shmK, sizeof(struct shmseg), IPC_CREAT | OBJ_PERMS), "shmget");
 
     // 5. Create a semaphore set with a size of 2
@@ -519,7 +517,7 @@ int main(int argc, char* argv[])
     // 10. Close the FIFO
     close(fd);
 
-    // TODO initialize counter to 0 here?
+    // initialize counter to 0
     smap->counter = 0;
 
     resetBoard(smap);
@@ -567,9 +565,6 @@ int main(int argc, char* argv[])
        
         // 6. release player 2's semaphore
         checkError(releaseSem(semid, 1), "releaseSem");
-
-        // DEBUG see counter's value
-        printf("DEBUG: counter = %d\n",smap->counter);
     }
 
     // 12. Open the FIFO xoSync for write

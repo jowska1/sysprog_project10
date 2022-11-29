@@ -1,6 +1,6 @@
 /* Group Members:
       Tia Malley - tcm326
-      Blake ...
+      Blake Davis - bd1163
       Rix ...
 
    Player Two - plays O
@@ -30,7 +30,6 @@ struct shmseg
 // check if all 9 spots are filled
 // if full, return 1 
 // else, return 0
-// TODO test
 int checkBoardFull(struct shmseg *smap)
 {
     int i = 0;
